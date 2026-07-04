@@ -93,10 +93,10 @@ supported.
 | Data type     | CPU (debug) | Wasm | WebGPU | WebGL(\*) | Notes             |
 | ------------- | ----------- | ---- | ------ | --------- | ----------------- |
 | `np.bool_`    | 🟢          | 🟢   | 🟢     | 🟢        |                   |
-| `np.int8`     | 🟢          | 🟢   | 🟠     | 🟠        | 1-byte storage    |
-| `np.uint8`    | 🟢          | 🟢   | 🟠     | 🟠        | 1-byte storage    |
-| `np.int16`    | 🟢          | 🟢   | 🟠     | 🟠        | 2-byte storage    |
-| `np.uint16`   | 🟢          | 🟢   | 🟠     | 🟠        | 2-byte storage    |
+| `np.int8`     | 🟢          | 🟢   | 🟢     | 🟠        | 1-byte storage    |
+| `np.uint8`    | 🟢          | 🟢   | 🟢     | 🟠        | 1-byte storage    |
+| `np.int16`    | 🟢          | 🟢   | 🟢     | 🟠        | 2-byte storage    |
+| `np.uint16`   | 🟢          | 🟢   | 🟢     | 🟠        | 2-byte storage    |
 | `np.int32`    | 🟢          | 🟢   | 🟢     | 🟢        |                   |
 | `np.uint32`   | 🟢          | 🟢   | 🟢     | 🟢        |                   |
 | `np.bfloat16` | 🔴          | 🔴   | 🔴     | 🔴        | lacks support     |

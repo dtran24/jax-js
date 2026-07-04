@@ -10,7 +10,9 @@
 import {
   calculateGrid,
   dtypeToWgsl,
+  emitStorageStoreWgsl,
   ShaderInfo,
+  storageDtypeToWgsl,
   WgslBuilder,
   WgslExpCodegen,
 } from "./codegen";
@@ -27,6 +29,10 @@ type ConstantUniform = {
 function uniformDtype(dtype: DType): DType {
   if (dtype === DType.Float16) return DType.Float32;
   if (dtype === DType.Bool) return DType.Int32;
+  if (dtype === DType.Int8) return DType.Int32;
+  if (dtype === DType.Uint8) return DType.Uint32;
+  if (dtype === DType.Int16) return DType.Int32;
+  if (dtype === DType.Uint16) return DType.Uint32;
   return dtype;
 }
 
@@ -38,6 +44,13 @@ function replacementFor({
   const value = AluExp.variable(uniformDtype, `uniforms.${name}`);
   if (dtype === DType.Float16) return AluExp.cast(DType.Float16, value);
   if (dtype === DType.Bool) return AluExp.cmpne(value, AluExp.i32(0));
+  if (
+    dtype === DType.Int8 ||
+    dtype === DType.Uint8 ||
+    dtype === DType.Int16 ||
+    dtype === DType.Uint16
+  )
+    return AluExp.cast(dtype, value);
   return value;
 }
 
@@ -112,9 +125,10 @@ export function nullaryKernelSource(
     );
   }
 
-  const resultTy = dtypeToWgsl(kernel.dtype, true);
+  const resultTy = dtypeToWgsl(kernel.dtype);
+  const resultStorageTy = storageDtypeToWgsl(kernel.dtype, "read_write");
   wb.emit(
-    `@group(0) @binding(0) var<storage, read_write> result : array<${resultTy}>;`,
+    `@group(0) @binding(0) var<storage, read_write> result : array<${resultStorageTy}>;`,
   );
   if (uniforms.length > 0) {
     wb.emit(`@group(1) @binding(0) var<uniform> uniforms: Uniforms;`);
@@ -146,7 +160,8 @@ export function nullaryKernelSource(
   gen.countReferences(exp);
   let rhs = strip1(gen.run(exp));
   if (resultTy !== dtypeToWgsl(exp.dtype)) rhs = `${resultTy}(${rhs})`;
-  wb.emit(`result[gidx] = ${rhs};`, wb.popIndent, "}");
+  emitStorageStoreWgsl(wb, kernel.dtype, "result", "gidx", rhs);
+  wb.emit(wb.popIndent, "}");
 
   return {
     code: wb.toString(),

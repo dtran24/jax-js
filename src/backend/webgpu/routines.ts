@@ -13,6 +13,16 @@ import { UnsupportedRoutineError } from "../../backend";
 import { Routine, Routines, RoutineType } from "../../routine";
 import { findPow2, prod } from "../../utils";
 
+function usesPackedInt(type: RoutineType): boolean {
+  return [...type.inputDtypes, ...type.outputDtypes].some(
+    (dtype) =>
+      dtype === DType.Int8 ||
+      dtype === DType.Uint8 ||
+      dtype === DType.Int16 ||
+      dtype === DType.Uint16,
+  );
+}
+
 type BitonicSortPass = {
   kind: "sort" | "merge"; // sort = full sort (stages 0..k), merge is only merge steps
   mergeStep?: number; // half_block = 2^step, only used for 'merge'
@@ -592,6 +602,9 @@ export function createRoutineShader(
   device: GPUDevice,
   routine: Routine,
 ): ShaderInfo[] {
+  if (usesPackedInt(routine.type)) {
+    throw new UnsupportedRoutineError(routine.name, "webgpu");
+  }
   switch (routine.name) {
     case Routines.Sort:
       return createSort(device, routine.type);

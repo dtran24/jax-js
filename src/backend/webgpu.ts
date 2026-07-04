@@ -7,8 +7,10 @@ import {
   calculateGrid,
   constToWgsl,
   dtypeToWgsl,
+  emitStorageStoreWgsl,
   reduceOpWgsl,
   ShaderInfo,
+  storageDtypeToWgsl,
   WgslBuilder,
   WgslExpCodegen,
 } from "./webgpu/codegen";
@@ -308,15 +310,16 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
   // binding(n): output buffer
   for (let i = 0; i < nargs; i++) {
     // If not used, just assume float32, all that matters is size / alignment.
-    const ty = dtypeToWgsl(usedArgs[i] ?? DType.Float32, true);
+    const ty = storageDtypeToWgsl(usedArgs[i] ?? DType.Float32, "read");
     wb.emit(
       `@group(0) @binding(${i}) var<storage, read> ${args[i]} : array<${ty}>;`,
     );
   }
 
-  const resultTy = dtypeToWgsl(kernel.dtype, true);
+  const resultTy = dtypeToWgsl(kernel.dtype);
+  const resultStorageTy = storageDtypeToWgsl(kernel.dtype, "read_write");
   wb.emit(
-    `@group(0) @binding(${nargs}) var<storage, read_write> result : array<${resultTy}>;`,
+    `@group(0) @binding(${nargs}) var<storage, read_write> result : array<${resultStorageTy}>;`,
   );
 
   const groupCount = re ? (tune.size.groups ?? 1) : 1;
@@ -396,7 +399,7 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
     gen.countReferences(tune.exp);
     let rhs = strip1(gen.run(tune.exp));
     if (resultTy !== dtypeToWgsl(tune.exp.dtype)) rhs = `${resultTy}(${rhs})`;
-    wb.emit(`result[gidx] = ${rhs};`);
+    emitStorageStoreWgsl(wb, kernel.dtype, "result", "gidx", rhs);
   } else {
     const unroll = tune.size.unroll ?? 1;
     const upcast = tune.size.upcast ?? 1;
@@ -513,7 +516,7 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
       let rhs = strip1(gen.run(fusionExps[i]));
       if (resultTy !== dtypeToWgsl(fusionExps[i].dtype))
         rhs = `${resultTy}(${rhs})`;
-      wb.emit(`result[${index}] = ${rhs};`);
+      emitStorageStoreWgsl(wb, kernel.dtype, "result", index, rhs);
     }
     if (groupedReduction) wb.emit(wb.popIndent, "}");
   }

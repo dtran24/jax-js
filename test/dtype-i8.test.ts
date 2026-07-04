@@ -3,8 +3,8 @@
 import { defaultDevice, init, jit, numpy as np } from "@jax-js/jax";
 import { beforeEach, expect, suite, test } from "vitest";
 
-// 8-bit integer storage is currently supported on CPU and scalar Wasm.
-const devices = ["cpu", "wasm"] as const;
+// 8-bit integer storage is currently supported on CPU, scalar Wasm, and WebGPU.
+const devices = ["cpu", "wasm", "webgpu"] as const;
 
 const devicesAvailable = await init(...devices);
 

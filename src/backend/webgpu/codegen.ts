@@ -80,6 +80,14 @@ export function dtypeToWgsl(dtype: DType, storage: boolean = false): string {
   switch (dtype) {
     case DType.Bool:
       return storage ? "i32" : "bool"; // WebGPU does not support bools in buffers.
+    case DType.Int8:
+      return storage ? "u32" : "i32"; // Packed four-per-u32 in storage.
+    case DType.Uint8:
+      return "u32"; // Packed four-per-u32 in storage.
+    case DType.Int16:
+      return storage ? "u32" : "i32"; // Packed two-per-u32 in storage.
+    case DType.Uint16:
+      return "u32"; // Packed two-per-u32 in storage.
     case DType.Int32:
       return "i32";
     case DType.Uint32:
@@ -93,10 +101,153 @@ export function dtypeToWgsl(dtype: DType, storage: boolean = false): string {
   }
 }
 
+export function storageDtypeToWgsl(
+  dtype: DType,
+  access: "read" | "read_write",
+): string {
+  if (
+    access === "read_write" &&
+    (dtype === DType.Int8 ||
+      dtype === DType.Uint8 ||
+      dtype === DType.Int16 ||
+      dtype === DType.Uint16)
+  ) {
+    return "atomic<u32>";
+  }
+  return dtypeToWgsl(dtype, true);
+}
+
+function packedIntBits(dtype: DType): 8 | 16 | null {
+  if (dtype === DType.Int8 || dtype === DType.Uint8) return 8;
+  if (dtype === DType.Int16 || dtype === DType.Uint16) return 16;
+  return null;
+}
+
+function isPackedIntDtype(dtype: DType): boolean {
+  return packedIntBits(dtype) !== null;
+}
+
+function isSignedPackedIntDtype(dtype: DType): boolean {
+  return dtype === DType.Int8 || dtype === DType.Int16;
+}
+
+function normalizeWgsl(dtype: DType, value: string): string {
+  const bits = packedIntBits(dtype);
+  if (bits === null) return value;
+  const mask = bits === 8 ? "0xffu" : "0xffffu";
+  if (isSignedPackedIntDtype(dtype)) {
+    const shift = 32 - bits;
+    return `(bitcast<i32>((bitcast<u32>(i32(${value})) & ${mask}) << ${shift}u) >> ${shift})`;
+  }
+  if (dtype === DType.Uint8 || dtype === DType.Uint16)
+    return `(${value} & ${mask})`;
+  return value;
+}
+
+export function readStorageWgsl(
+  dtype: DType,
+  buffer: string,
+  index: string,
+): string {
+  const bitWidth = packedIntBits(dtype);
+  if (bitWidth !== null) {
+    const wordShift = bitWidth === 8 ? "2u" : "1u";
+    const laneMask = bitWidth === 8 ? "3u" : "1u";
+    const valueMask = bitWidth === 8 ? "0xffu" : "0xffffu";
+    const idx = `u32(${index})`;
+    const bits = `((${buffer}[${idx} >> ${wordShift}] >> ((${idx} & ${laneMask}) * ${bitWidth}u)) & ${valueMask})`;
+    if (isSignedPackedIntDtype(dtype)) {
+      const shift = 32 - bitWidth;
+      return `(bitcast<i32>(${bits} << ${shift}u) >> ${shift})`;
+    }
+    return bits;
+  }
+  const source = `${buffer}[${index}]`;
+  if (dtype === DType.Bool) return `(${source} != 0)`;
+  return source;
+}
+
+export function emitStorageStoreWgsl(
+  wb: WgslBuilder,
+  dtype: DType,
+  buffer: string,
+  index: string,
+  value: string,
+  valueDtype: DType = dtype,
+): void {
+  const bitWidth = packedIntBits(dtype);
+  if (bitWidth !== null) {
+    const wordShift = bitWidth === 8 ? "2u" : "1u";
+    const laneMask = bitWidth === 8 ? "3u" : "1u";
+    const valueMask = bitWidth === 8 ? "0xffu" : "0xffffu";
+    const valueBits =
+      isSignedPackedIntDtype(dtype) ? `bitcast<u32>(i32(${value}))` : value;
+    wb.emit(
+      "{",
+      wb.pushIndent,
+      `let packed_index: u32 = u32(${index});`,
+      `let word_index: u32 = packed_index >> ${wordShift};`,
+      `let shift: u32 = (packed_index & ${laneMask}) * ${bitWidth}u;`,
+      `let mask: u32 = ${valueMask} << shift;`,
+      `let bits: u32 = (${valueBits} & ${valueMask}) << shift;`,
+      `var old_value: u32 = atomicLoad(&${buffer}[word_index]);`,
+      "loop {",
+      wb.pushIndent,
+      "let next_value: u32 = (old_value & ~mask) | bits;",
+      `let exchange = atomicCompareExchangeWeak(&${buffer}[word_index], old_value, next_value);`,
+      "if (exchange.exchanged) { break; }",
+      "old_value = exchange.old_value;",
+      wb.popIndent,
+      "}",
+      wb.popIndent,
+      "}",
+    );
+    return;
+  }
+
+  let rhs = value;
+  const storageTy = dtypeToWgsl(dtype, true);
+  if (storageTy !== dtypeToWgsl(valueDtype)) rhs = `${storageTy}(${rhs})`;
+  wb.emit(`${buffer}[${index}] = ${rhs};`);
+}
+
+export function minValueWgsl(dtype: DType): string {
+  switch (dtype) {
+    case DType.Bool:
+      return "0"; // Using i32 representation.
+    case DType.Int8:
+      return "-128";
+    case DType.Uint8:
+      return "0u";
+    case DType.Int16:
+      return "-32768";
+    case DType.Uint16:
+      return "0u";
+    case DType.Int32:
+      return "-2147483648"; // -2^31
+    case DType.Uint32:
+      return "0u";
+    case DType.Float32:
+      return "-inf()";
+    case DType.Float16:
+      return "f16(-inf())";
+    default:
+      throw new Error(`Unsupported dtype for WebGPU: ${dtype}`);
+  }
+}
+
 export function maxValueWgsl(dtype: DType): string {
   switch (dtype) {
     case DType.Bool:
       return "1"; // Using i32 representation.
+    case DType.Int8:
+      return "127";
+    case DType.Uint8:
+      return "255u";
+    case DType.Int16:
+      return "32767";
+    case DType.Uint16:
+      return "65535u";
     case DType.Int32:
       return "2147483647"; // 2^31 - 1
     case DType.Uint32:
@@ -112,6 +263,10 @@ export function maxValueWgsl(dtype: DType): string {
 
 export function constToWgsl(dtype: DType, value: any): string {
   if (dtype === DType.Bool) return value ? "true" : "false";
+  if (dtype === DType.Int8) return value.toString();
+  if (dtype === DType.Uint8) return value.toString() + "u";
+  if (dtype === DType.Int16) return value.toString();
+  if (dtype === DType.Uint16) return value.toString() + "u";
   if (dtype === DType.Int32) return value.toString();
   if (dtype === DType.Uint32) return value.toString() + "u"; // WebGPU uses 'u' suffix for uint32.
   if (dtype === DType.Float32) {
@@ -236,6 +391,18 @@ export class WgslExpCodegen {
           source = `(${a} != ${b})`;
         }
       }
+      if (
+        isPackedIntDtype(dtype) &&
+        (op === AluOp.Add ||
+          op === AluOp.Sub ||
+          op === AluOp.Mul ||
+          op === AluOp.Idiv ||
+          op === AluOp.Mod ||
+          op === AluOp.BitCombine ||
+          op === AluOp.BitShift)
+      ) {
+        source = normalizeWgsl(dtype, source);
+      }
     } else if (AluGroup.Unary.has(op)) {
       if (op === AluOp.Reciprocal && src[0].op === AluOp.Sqrt) {
         // Special case: 1/sqrt(x) is optimized as rsqrt(x)
@@ -265,6 +432,15 @@ export class WgslExpCodegen {
           const srcTy = dtypeToWgsl(src[0].dtype);
           const dstTy = dtypeToWgsl(dtype);
           if (
+            isPackedIntDtype(dtype) &&
+            isFloatDtype(src[0].dtype)
+          ) {
+            const minVal = minValueWgsl(dtype);
+            const maxVal = maxValueWgsl(dtype);
+            const x = this.#isGensym(a) ? a : this.#gensym();
+            if (x !== a) this.wb.emit(`let ${x}: ${srcTy} = ${strip1(a)};`);
+            source = `${dstTy}(clamp(${x}, ${srcTy}(${minVal}), ${srcTy}(${maxVal})))`;
+          } else if (
             isFloatDtype(src[0].dtype) &&
             !(isFloatDtype(dtype) || dtype === DType.Bool)
           ) {
@@ -276,8 +452,10 @@ export class WgslExpCodegen {
           } else {
             source = `${dstTy}(${strip1(a)})`;
           }
+          source = normalizeWgsl(dtype, source);
         } else if (op === AluOp.Bitcast)
           source = `bitcast<${dtypeToWgsl(dtype)}>(${strip1(a)})`;
+        if (op === AluOp.Bitcast) source = normalizeWgsl(dtype, source);
       }
     } else if (op === AluOp.Where) {
       // select(f, t, cond) -> cond ? t : f
@@ -299,8 +477,11 @@ export class WgslExpCodegen {
     } else if (op === AluOp.Variable) {
       return arg as string;
     } else if (op === AluOp.GlobalIndex) {
-      source = `${this.args[arg[0]]}[${strip1(this.run(src[0]))}]`;
-      if (dtype === DType.Bool) source = `(${source} != 0)`; // bool is represented as i32
+      source = readStorageWgsl(
+        dtype,
+        this.args[arg[0]],
+        strip1(this.run(src[0])),
+      );
     }
 
     if (!source) throw new UnsupportedOpError(op, dtype, "webgpu", arg);
