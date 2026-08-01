@@ -42,6 +42,57 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.countNonzero()", () => {
+    test("counts across all dimensions", () => {
+      const x = np.array([
+        [1, 0, -2],
+        [0, 3, 0],
+      ]);
+      const result = np.countNonzero(x);
+      expect(result.dtype).toBe(np.int32);
+      expect(result.js()).toEqual(3);
+    });
+
+    test("counts along one or more axes", () => {
+      const x = np.array([
+        [1, 0, -2],
+        [0, 3, 0],
+      ]);
+      expect(np.countNonzero(x.ref, 0).js()).toEqual([1, 1, 1]);
+      expect(np.countNonzero(x.ref, 1).js()).toEqual([2, 1]);
+      expect(np.countNonzero(x, [0, 1]).js()).toEqual(3);
+    });
+
+    test("supports keepdims", () => {
+      const x = np.array([
+        [1, 0, -2],
+        [0, 3, 0],
+      ]);
+      const result = np.countNonzero(x, 1, { keepdims: true });
+      expect(result.shape).toEqual([2, 1]);
+      expect(result.js()).toEqual([[2], [1]]);
+    });
+
+    test("handles booleans, NaN, and empty arrays", () => {
+      expect(np.countNonzero(np.array([false, true, true])).js()).toEqual(2);
+      expect(np.countNonzero(np.array([0, NaN, 2])).js()).toEqual(2);
+      expect(np.countNonzero(np.zeros([0, 3])).js()).toEqual(0);
+    });
+
+    test("works inside jit", () => {
+      const countRows = jit((x: np.Array) =>
+        np.countNonzero(x, 1, { keepdims: true }),
+      );
+      const result = countRows(
+        np.array([
+          [0, 1, 2],
+          [0, 0, 3],
+        ]),
+      );
+      expect(result.js()).toEqual([[2], [1]]);
+    });
+  });
+
   suite("jax.numpy.average()", () => {
     test("no weights is same as mean", () => {
       const x = np.array([1, 2, 3, 4]);

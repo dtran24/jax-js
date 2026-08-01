@@ -324,6 +324,15 @@ export function sum(
   return core.reduce(a, AluOp.Add, axis, opts) as Array;
 }
 
+/** Count the number of non-zero elements along the specified axis. */
+export function countNonzero(
+  a: ArrayLike,
+  axis: core.Axis = null,
+  opts?: core.ReduceOpts,
+): Array {
+  return sum(astype(notEqual(a, 0), int32), axis, opts);
+}
+
 /** Product of the array elements over a given axis. */
 export function prod(
   a: ArrayLike,

@@ -193,7 +193,7 @@ Most operations behave the same way as they do in JAX.
 | `correlate`           | 🟢      | `lax.conv_general_dilated` is supported |
 | `cos`                 | 🟢      |                                         |
 | `cosh`                | 🟢      |                                         |
-| `count_nonzero`       | 🟠      |                                         |
+| `count_nonzero`       | 🟢      |                                         |
 | `cov`                 | 🟢      |                                         |
 | `cross`               | 🟢      |                                         |
 | `cumprod`             | 🟡      | Quadratic-time                          |
