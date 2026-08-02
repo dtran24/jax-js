@@ -22,7 +22,7 @@ export type DataArray =
 
 export interface GlobalLoader {
   (gid: number, bufidx: number): any;
-  signbit?: (gid: number, bufidx: number, dtype: DType) => number;
+  signbit?: (gid: number, bufidx: number) => number;
 }
 
 export const byteWidth = (dtype: DType): number => {
@@ -551,11 +551,7 @@ export class AluExp implements FpHashable {
       }
 
       case AluOp.Cmplt:
-        ret = [0, 1];
-        break;
       case AluOp.Cmpne:
-        ret = [0, 1];
-        break;
       case AluOp.Signbit:
         ret = [0, 1];
         break;
@@ -1121,7 +1117,7 @@ export class AluExp implements FpHashable {
         const input = this.src[0];
         const gid: number = input.arg[0];
         const bufidx = input.src[0].evaluate(context, globals);
-        return globals.signbit(gid, bufidx, input.dtype);
+        return globals.signbit(gid, bufidx);
       }
 
       const x = this.src[0].evaluate(context, globals);
@@ -1155,10 +1151,8 @@ export class AluExp implements FpHashable {
           if (!isFloatDtype(dtype))
             return Number(dtype === DType.Int32 && x < 0);
 
-          const view = new DataView(new ArrayBuffer(byteWidth(dtype)));
-          if (dtype === DType.Float16) view.setFloat16(0, x);
-          else if (dtype === DType.Float32) view.setFloat32(0, x);
-          else view.setFloat64(0, x);
+          const view = new DataView(new ArrayBuffer(8));
+          view.setFloat64(0, x);
           return view.getUint8(0) >>> 7;
         }
         case AluOp.Cast: {
