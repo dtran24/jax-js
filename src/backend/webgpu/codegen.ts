@@ -268,7 +268,7 @@ export class WgslExpCodegen {
           else if (inputDtype === DType.Uint32 || inputDtype === DType.Bool)
             source = "false";
           else if (inputDtype === DType.Float16 || inputDtype === DType.Float32)
-            source = `((bitcast<u32>(f32(${strip1(a)})) & 0x80000000u) != 0u)`;
+            source = `(bitcast<i32>(f32(${strip1(a)})) < 0)`;
         } else if (op === AluOp.Cast) {
           const srcTy = dtypeToWgsl(src[0].dtype);
           const dstTy = dtypeToWgsl(dtype);
