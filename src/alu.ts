@@ -1137,18 +1137,15 @@ export class AluExp implements FpHashable {
         case AluOp.Reciprocal:
           return 1 / x;
         case AluOp.Signbit: {
-          const inputDtype = this.src[0].dtype;
-          if (inputDtype === DType.Int32) return Number(x < 0);
-          if (inputDtype === DType.Uint32 || inputDtype === DType.Bool)
-            return 0;
+          const dtype = this.src[0].dtype;
+          if (!isFloatDtype(dtype))
+            return Number(dtype === DType.Int32 && x < 0);
 
-          const buf = new ArrayBuffer(byteWidth(inputDtype));
-          const view = new DataView(buf);
-          if (inputDtype === DType.Float16) view.setFloat16(0, x, true);
-          else if (inputDtype === DType.Float32) view.setFloat32(0, x, true);
-          else if (inputDtype === DType.Float64) view.setFloat64(0, x, true);
-          else throw new Error(`Unsupported signbit input ${inputDtype}`);
-          return Number((view.getUint8(buf.byteLength - 1) & 0x80) !== 0);
+          const view = new DataView(new ArrayBuffer(byteWidth(dtype)));
+          if (dtype === DType.Float16) view.setFloat16(0, x);
+          else if (dtype === DType.Float32) view.setFloat32(0, x);
+          else view.setFloat64(0, x);
+          return view.getUint8(0) >>> 7;
         }
         case AluOp.Cast: {
           const wasFloat = isFloatDtype(this.src[0].dtype);
