@@ -2022,6 +2022,65 @@ suite.each(devices)("device:%s", (device) => {
         expect(a.js()).toEqual([i]);
       }
     });
+
+    test("supports an empty list of split indices", () => {
+      const x = np.arange(5);
+      const [a] = np.split(x, []);
+      expect(a.js()).toEqual([0, 1, 2, 3, 4]);
+    });
+  });
+
+  suite("jax.numpy.arraySplit()", () => {
+    test("splits an array into uneven parts", () => {
+      const x = np.arange(8);
+      const [a, b, c] = np.arraySplit(x, 3);
+      expect(a.js()).toEqual([0, 1, 2]);
+      expect(b.js()).toEqual([3, 4, 5]);
+      expect(c.js()).toEqual([6, 7]);
+    });
+
+    test("returns empty trailing parts when sections exceed axis size", () => {
+      const x = np.arange(3);
+      const parts = np.arraySplit(x, 5);
+      expect(parts.map((part) => part.js())).toEqual([[0], [1], [2], [], []]);
+    });
+
+    test("splits along a negative axis", () => {
+      const x = np.arange(10).reshape([2, 5]);
+      const [a, b, c] = np.arraySplit(x, 3, -1);
+      expect(a.js()).toEqual([
+        [0, 1],
+        [5, 6],
+      ]);
+      expect(b.js()).toEqual([
+        [2, 3],
+        [7, 8],
+      ]);
+      expect(c.js()).toEqual([[4], [9]]);
+    });
+
+    test("supports explicit split indices", () => {
+      const x = np.arange(7);
+      const [a, b, c] = np.arraySplit(x, [2, 5]);
+      expect(a.js()).toEqual([0, 1]);
+      expect(b.js()).toEqual([2, 3, 4]);
+      expect(c.js()).toEqual([5, 6]);
+    });
+
+    test("rejects invalid section counts", () => {
+      const x = np.arange(5);
+      expect(() => np.arraySplit(x, 0)).toThrow(Error);
+      expect(() => np.arraySplit(x, -2)).toThrow(Error);
+      expect(() => np.arraySplit(x, 2.5)).toThrow(Error);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => {
+        const [a, b, c] = np.arraySplit(x, 3);
+        return np.concatenate([c, b, a]);
+      });
+      expect(f(np.arange(8)).js()).toEqual([6, 7, 3, 4, 5, 0, 1, 2]);
+    });
   });
 
   suite("jax.numpy.concatenate()", () => {

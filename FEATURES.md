@@ -146,7 +146,7 @@ Most operations behave the same way as they do in JAX.
 | `array_equal`         | 🟢      |                                         |
 | `array_equiv`         | 🟢      |                                         |
 | `array_repr`          | ⚪️      | string formatting                       |
-| `array_split`         | 🟠      | `split` is supported                    |
+| `array_split`         | 🟢      |                                         |
 | `array_str`           | ⚪️      | string formatting                       |
 | `asarray`             | ⚪️      | alias of `array`                        |
 | `asin`                | 🟢      |                                         |
