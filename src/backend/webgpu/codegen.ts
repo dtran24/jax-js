@@ -262,7 +262,14 @@ export class WgslExpCodegen {
         else if (op === AluOp.Reciprocal) source = `(1.0 / ${a})`;
         else if (op === AluOp.Floor) source = `floor(${strip1(a)})`;
         else if (op === AluOp.Ceil) source = `ceil(${strip1(a)})`;
-        else if (op === AluOp.Cast) {
+        else if (op === AluOp.Signbit) {
+          const inputDtype = src[0].dtype;
+          if (inputDtype === DType.Int32) source = `(${strip1(a)} < 0)`;
+          else if (inputDtype === DType.Uint32 || inputDtype === DType.Bool)
+            source = "false";
+          else if (inputDtype === DType.Float16 || inputDtype === DType.Float32)
+            source = `((bitcast<u32>(f32(${strip1(a)})) & 0x80000000u) != 0u)`;
+        } else if (op === AluOp.Cast) {
           const srcTy = dtypeToWgsl(src[0].dtype);
           const dstTy = dtypeToWgsl(dtype);
           if (

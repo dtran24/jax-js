@@ -54,6 +54,7 @@ export enum Primitive {
   StopGradient = "stop_gradient",
   Cast = "cast",
   Bitcast = "bitcast",
+  Signbit = "signbit",
   Sin = "sin",
   Cos = "cos",
   Asin = "asin",
@@ -224,6 +225,10 @@ export function cast(x: TracerValue, dtype: DType) {
 
 export function bitcast(x: TracerValue, dtype: DType) {
   return bind1(Primitive.Bitcast, [x], { dtype });
+}
+
+export function signbit(x: TracerValue) {
+  return bind1(Primitive.Signbit, [x]);
 }
 
 export function sin(x: TracerValue) {

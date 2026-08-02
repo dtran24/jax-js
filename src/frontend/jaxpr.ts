@@ -846,6 +846,9 @@ export const abstractEvalRules: { [P in Primitive]: AbstractEvalRule<P> } = {
     }
     return [new ShapedArray(x.shape, dtype, false)];
   },
+  [Primitive.Signbit]([x]: ShapedArray[]) {
+    return [new ShapedArray(x.shape, DType.Bool, false)];
+  },
   [Primitive.Sin]: vectorizedUnopAbstractEval,
   [Primitive.Cos]: vectorizedUnopAbstractEval,
   [Primitive.Asin]: vectorizedUnopAbstractEval,

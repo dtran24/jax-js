@@ -412,7 +412,7 @@ Most operations behave the same way as they do in JAX.
 | `setxor1d`            | ⚪️      | Python-specific                         |
 | `shape`               | 🟢      |                                         |
 | `sign`                | 🟢      |                                         |
-| `signbit`             | 🔴      |                                         |
+| `signbit`             | 🟢      |                                         |
 | `sin`                 | 🟢      |                                         |
 | `sinc`                | 🟡      | JVP not supported at x=0                |
 | `sinh`                | 🟢      |                                         |

@@ -33,6 +33,19 @@ suite.each(devices)("device:%s", (device) => {
     expect(a.js()).toEqual([1.5, 2.5, 3.5]);
   });
 
+  test("signbit() preserves f16 sign bits", () => {
+    const bits = new Uint16Array([
+      0xbc00, // -1
+      0x8000, // -0
+      0x0000, // +0
+      0x3c00, // +1
+      0xfe00, // negative NaN
+      0x7e00, // positive NaN
+    ]);
+    const x = np.array(new Float16Array(bits.buffer));
+    expect(np.signbit(x).js()).toEqual([true, true, false, false, true, false]);
+  });
+
   test("jit of f16 calculation", () => {
     const f = jit((x: np.Array) => np.sum(x.ref.mul(x)));
     expect(f(np.arange(10).astype(np.float16))).toBeAllclose(285);

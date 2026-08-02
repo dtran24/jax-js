@@ -279,6 +279,7 @@ const vmapRules: Partial<{ [P in Primitive]: VmapRule<P> }> = {
   [Primitive.StopGradient]: unopBatcher(Primitive.StopGradient),
   [Primitive.Cast]: unopBatcher(Primitive.Cast),
   [Primitive.Bitcast]: unopBatcher(Primitive.Bitcast),
+  [Primitive.Signbit]: unopBatcher(Primitive.Signbit),
   [Primitive.Sin]: unopBatcher(Primitive.Sin),
   [Primitive.Cos]: unopBatcher(Primitive.Cos),
   [Primitive.Asin]: unopBatcher(Primitive.Asin),

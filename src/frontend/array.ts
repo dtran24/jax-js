@@ -1000,6 +1000,9 @@ export class Array extends Tracer {
           return [y];
         }
       },
+      [Primitive.Signbit]([x]) {
+        return [x.#unary(AluOp.Signbit, DType.Bool)];
+      },
       [Primitive.Sin]([x]) {
         return [x.#unary(AluOp.Sin)];
       },

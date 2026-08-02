@@ -231,6 +231,7 @@ const jvpRules: { [P in Primitive]: JvpRule<P> } = {
     dx.dispose(); // Non-differentiable operation.
     return [[bitcast(x.ref, dtype)], [zerosLike(x)]];
   },
+  [Primitive.Signbit]: zeroTangentsJvp(Primitive.Signbit),
   [Primitive.Sin]([x], [dx]) {
     return [[sin(x.ref)], [cos(x).mul(dx)]];
   },

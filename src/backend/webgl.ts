@@ -695,7 +695,14 @@ function generateExpression(
       else if (op === AluOp.Floor) source = `floor(${strip1(a)})`;
       else if (op === AluOp.Ceil) source = `ceil(${strip1(a)})`;
       else if (op === AluOp.Reciprocal) source = `(1.0 / ${a})`;
-      else if (op === AluOp.Cast) source = `${glslType(dtype)}(${strip1(a)})`;
+      else if (op === AluOp.Signbit) {
+        const inputDtype = src[0].dtype;
+        if (inputDtype === DType.Int32) source = `(${strip1(a)} < 0)`;
+        else if (inputDtype === DType.Uint32 || inputDtype === DType.Bool)
+          source = "false";
+        else if (isFloatDtype(inputDtype))
+          source = `(floatBitsToInt(float(${strip1(a)})) < 0)`;
+      } else if (op === AluOp.Cast) source = `${glslType(dtype)}(${strip1(a)})`;
       else if (op === AluOp.Bitcast) {
         const dtype0 = src[0].dtype;
         if (dtype === dtype0) source = a;

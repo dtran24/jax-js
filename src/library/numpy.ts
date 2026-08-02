@@ -1870,6 +1870,9 @@ export function sign(x: ArrayLike): Array {
   return where(notEqual(x.ref, 0), where(less(x, 0), -1, 1), 0);
 }
 
+/** Test element-wise whether the sign bit is set. */
+export const signbit = core.signbit as (x: ArrayLike) => Array;
+
 /**
  * @function
  * Return the value with the magnitude of x and the sign of y, element-wise.

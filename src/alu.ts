@@ -155,6 +155,11 @@ export class AluExp implements FpHashable {
           throw new TypeError(`Bitcast from ${src[0].dtype} -> ${dtype}`);
         break;
 
+      case AluOp.Signbit:
+        if (dtype !== DType.Bool || src.length !== 1)
+          throw new TypeError("Signbit requires one numeric input");
+        break;
+
       case AluOp.Threefry2x32:
         if (dtype !== DType.Uint32 || src.some((x) => x.dtype !== DType.Uint32))
           throw new TypeError("Threefry2x32 requires uint32 types");
@@ -252,6 +257,9 @@ export class AluExp implements FpHashable {
   static bitcast(dtype: DType, a: AluExp): AluExp {
     if (a.dtype === dtype) return a;
     return new AluExp(AluOp.Bitcast, dtype, [a]);
+  }
+  static signbit(a: AluExp): AluExp {
+    return new AluExp(AluOp.Signbit, DType.Bool, [a]);
   }
   static threefry2x32(
     k0: AluExp,
@@ -541,6 +549,9 @@ export class AluExp implements FpHashable {
         ret = [0, 1];
         break;
       case AluOp.Cmpne:
+        ret = [0, 1];
+        break;
+      case AluOp.Signbit:
         ret = [0, 1];
         break;
       case AluOp.Where:
@@ -1125,6 +1136,20 @@ export class AluExp implements FpHashable {
           return Math.ceil(x);
         case AluOp.Reciprocal:
           return 1 / x;
+        case AluOp.Signbit: {
+          const inputDtype = this.src[0].dtype;
+          if (inputDtype === DType.Int32) return Number(x < 0);
+          if (inputDtype === DType.Uint32 || inputDtype === DType.Bool)
+            return 0;
+
+          const buf = new ArrayBuffer(byteWidth(inputDtype));
+          const view = new DataView(buf);
+          if (inputDtype === DType.Float16) view.setFloat16(0, x, true);
+          else if (inputDtype === DType.Float32) view.setFloat32(0, x, true);
+          else if (inputDtype === DType.Float64) view.setFloat64(0, x, true);
+          else throw new Error(`Unsupported signbit input ${inputDtype}`);
+          return Number((view.getUint8(buf.byteLength - 1) & 0x80) !== 0);
+        }
         case AluOp.Cast: {
           const wasFloat = isFloatDtype(this.src[0].dtype);
           if (this.dtype === DType.Int32)
@@ -1385,6 +1410,7 @@ export enum AluOp {
   Reciprocal = "Reciprocal",
   Cast = "Cast",
   Bitcast = "Bitcast",
+  Signbit = "Signbit",
 
   BitCombine = "BitCombine", // arg = 'or' | 'and' | 'xor'
   BitInvert = "BitInvert",
@@ -1433,6 +1459,7 @@ export const AluGroup = {
     AluOp.Reciprocal,
     AluOp.Cast,
     AluOp.Bitcast,
+    AluOp.Signbit,
   ]),
   Compare: new Set([AluOp.Cmplt, AluOp.Cmpne]),
   Variable: new Set([
