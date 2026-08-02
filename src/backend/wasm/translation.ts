@@ -136,18 +136,13 @@ export function translateExp(
       else if (op === AluOp.Ceil) (gen(src[0]), dtyF(cg, op, dtype).ceil());
       else if (op === AluOp.Signbit) {
         const inputDtype = src[0].dtype;
-        if (inputDtype === DType.Float32) {
-          cg.f32.const(1);
+        if (inputDtype === DType.Float32 || inputDtype === DType.Float64) {
+          const dt = dtyF(cg, op, inputDtype);
+          dt.const(1);
           gen(src[0]);
-          cg.f32.copysign();
-          cg.f32.const(0);
-          cg.f32.lt();
-        } else if (inputDtype === DType.Float64) {
-          cg.f64.const(1);
-          gen(src[0]);
-          cg.f64.copysign();
-          cg.f64.const(0);
-          cg.f64.lt();
+          dt.copysign();
+          dt.const(0);
+          dt.lt();
         } else if (inputDtype === DType.Int32) {
           gen(src[0]);
           cg.i32.const(0);
