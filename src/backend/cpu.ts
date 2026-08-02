@@ -1,4 +1,10 @@
-import { AluOp, dtypedArray, Kernel } from "../alu";
+import {
+  AluOp,
+  byteWidth,
+  dtypedArray,
+  type GlobalLoader,
+  Kernel,
+} from "../alu";
 import { Backend, Device, Executable, Slot, SlotError } from "../backend";
 import { Routine, runCpuRoutine } from "../routine";
 import { tuneNullopt } from "../tuner";
@@ -110,12 +116,20 @@ export class CpuBackend implements Backend {
     });
     const outputArray = dtypedArray(kernel.dtype, outputBuffers[0]);
 
-    const globals = (gid: number, bufidx: number) => {
+    const checkBounds = (gid: number, bufidx: number) => {
       if (gid < 0 || gid >= inputArrays.length)
         throw new Error("gid out of bounds: " + gid);
       if (bufidx < 0 || bufidx >= inputArrays[gid].length)
         throw new Error("bufidx out of bounds: " + bufidx);
+    };
+    const globals: GlobalLoader = (gid: number, bufidx: number) => {
+      checkBounds(gid, bufidx);
       return inputArrays[gid][bufidx];
+    };
+    globals.signbit = (gid: number, bufidx: number, dtype) => {
+      checkBounds(gid, bufidx);
+      const width = byteWidth(dtype);
+      return inputBuffers[gid][(bufidx + 1) * width - 1] >>> 7;
     };
     if (!kernel.reduction) {
       for (let i = 0; i < kernel.size; i++) {

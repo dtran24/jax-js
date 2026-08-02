@@ -199,6 +199,15 @@ test("AluOp.Bitcast", () => {
   expect(() => AluExp.bitcast(DType.Bool, AluExp.f32(1.0))).toThrow(TypeError);
 });
 
+test("AluOp.Signbit can inspect raw global values", () => {
+  const input = AluExp.globalIndex(DType.Float32, 0, 1, AluExp.i32(0));
+  const globals = Object.assign(() => NaN, {
+    signbit: () => 1,
+  });
+
+  expect(AluExp.signbit(input).evaluate({}, globals)).toBe(1);
+});
+
 test("AluOp.Threefry2x32", () => {
   const k0 = AluExp.u32(0);
   const k1 = AluExp.u32(0);

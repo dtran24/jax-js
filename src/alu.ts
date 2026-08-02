@@ -20,6 +20,11 @@ export type DataArray =
   | Float16Array<ArrayBuffer>
   | Float64Array<ArrayBuffer>;
 
+export interface GlobalLoader {
+  (gid: number, bufidx: number): any;
+  signbit?: (gid: number, bufidx: number, dtype: DType) => number;
+}
+
 export const byteWidth = (dtype: DType): number => {
   switch (dtype) {
     case DType.Float32:
@@ -1067,10 +1072,7 @@ export class AluExp implements FpHashable {
    *
    * Note that the representation of Bool is as a number (0 or 1) here.
    */
-  evaluate(
-    context: Record<string, any>,
-    globals?: (gid: number, bufidx: number) => any,
-  ): number {
+  evaluate(context: Record<string, any>, globals?: GlobalLoader): number {
     if (AluGroup.Binary.has(this.op) || AluGroup.Compare.has(this.op)) {
       const x = this.src[0].evaluate(context, globals);
       const y = this.src[1].evaluate(context, globals);
@@ -1110,6 +1112,18 @@ export class AluExp implements FpHashable {
     }
 
     if (AluGroup.Unary.has(this.op)) {
+      if (
+        this.op === AluOp.Signbit &&
+        this.src[0].op === AluOp.GlobalIndex &&
+        isFloatDtype(this.src[0].dtype) &&
+        globals?.signbit
+      ) {
+        const input = this.src[0];
+        const gid: number = input.arg[0];
+        const bufidx = input.src[0].evaluate(context, globals);
+        return globals.signbit(gid, bufidx, input.dtype);
+      }
+
       const x = this.src[0].evaluate(context, globals);
       switch (this.op) {
         case AluOp.Sin:
