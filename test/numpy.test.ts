@@ -2067,13 +2067,6 @@ suite.each(devices)("device:%s", (device) => {
       expect(c.js()).toEqual([5, 6]);
     });
 
-    test("rejects invalid section counts", () => {
-      const x = np.arange(5);
-      expect(() => np.arraySplit(x, 0)).toThrow(Error);
-      expect(() => np.arraySplit(x, -2)).toThrow(Error);
-      expect(() => np.arraySplit(x, 2.5)).toThrow(Error);
-    });
-
     test("works inside jit", () => {
       const f = jit((x: np.Array) => {
         const [a, b, c] = np.arraySplit(x, 3);

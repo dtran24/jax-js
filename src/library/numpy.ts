@@ -614,11 +614,6 @@ export function split(
   const size = a.shape[axis];
   let sizes: number[];
   if (typeof indicesOrSections === "number") {
-    if (!Number.isInteger(indicesOrSections) || indicesOrSections <= 0) {
-      throw new Error(
-        `split: sections must be a positive integer, got ${indicesOrSections}`,
-      );
-    }
     if (size % indicesOrSections !== 0) {
       throw new Error(
         `Array of size ${size} cannot be split into ${indicesOrSections} equal parts`,
@@ -649,11 +644,6 @@ export function arraySplit(
   axis = checkAxis(axis, a.ndim);
   if (typeof indicesOrSections !== "number") {
     return split(a, indicesOrSections, axis);
-  }
-  if (!Number.isInteger(indicesOrSections) || indicesOrSections <= 0) {
-    throw new Error(
-      `arraySplit: sections must be a positive integer, got ${indicesOrSections}`,
-    );
   }
 
   const size = a.shape[axis];
