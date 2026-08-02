@@ -34,14 +34,18 @@ suite.each(devices)("device:%s", (device) => {
   });
 
   test("signbit() preserves f16 sign bits", () => {
-    const values = new Float16Array([-1, -0, 0, 1, NaN, NaN]);
-    // JavaScript cannot observe a NaN's sign, so set only those bits explicitly.
-    const bits = new Uint16Array(values.buffer);
+    const positiveNaN = new Float16Array([NaN]);
+    const negativeNaN = new Float16Array([NaN]);
     const signMask = 1 << 15;
-    bits[4] |= signMask;
-    bits[5] &= ~signMask;
+    new Uint16Array(positiveNaN.buffer)[0] &= ~signMask;
+    new Uint16Array(negativeNaN.buffer)[0] |= signMask;
+
+    const values = new Float16Array([-1, -0, 0, 1, NaN, NaN]);
+    // Same-type set() copies the NaNs without normalizing their raw bits.
+    values.set(positiveNaN, 4);
+    values.set(negativeNaN, 5);
     const x = np.array(values);
-    expect(np.signbit(x).js()).toEqual([true, true, false, false, true, false]);
+    expect(np.signbit(x).js()).toEqual([true, true, false, false, false, true]);
   });
 
   test("jit of f16 calculation", () => {

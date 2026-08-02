@@ -33,14 +33,18 @@ suite.each(devices)("device:%s", (device) => {
   });
 
   test("signbit() preserves f64 sign bits", () => {
-    const values = new Float64Array([-1, -0, 0, 1, NaN, NaN]);
-    // JavaScript cannot observe a NaN's sign, so set only those bits explicitly.
-    const bits = new BigUint64Array(values.buffer);
+    const positiveNaN = new Float64Array([NaN]);
+    const negativeNaN = new Float64Array([NaN]);
     const signMask = 1n << 63n;
-    bits[4] |= signMask;
-    bits[5] &= ~signMask;
+    new BigUint64Array(positiveNaN.buffer)[0] &= ~signMask;
+    new BigUint64Array(negativeNaN.buffer)[0] |= signMask;
+
+    const values = new Float64Array([-1, -0, 0, 1, NaN, NaN]);
+    // Same-type set() copies the NaNs without normalizing their raw bits.
+    values.set(positiveNaN, 4);
+    values.set(negativeNaN, 5);
     const x = np.array(values);
-    expect(np.signbit(x).js()).toEqual([true, true, false, false, true, false]);
+    expect(np.signbit(x).js()).toEqual([true, true, false, false, false, true]);
   });
 
   test("jit of f64 calculation", () => {
