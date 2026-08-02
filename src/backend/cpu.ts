@@ -1,4 +1,4 @@
-import { AluOp, dtypedArray, type GlobalLoader, Kernel } from "../alu";
+import { AluOp, dtypedArray, type GlobalData, Kernel } from "../alu";
 import { Backend, Device, Executable, Slot, SlotError } from "../backend";
 import { Routine, runCpuRoutine } from "../routine";
 import { tuneNullopt } from "../tuner";
@@ -103,28 +103,12 @@ export class CpuBackend implements Backend {
       ].map((exp) => [exp.arg[0] as number, exp.dtype]),
     );
 
-    const inputArrays = inputBuffers.map((buf, i) => {
+    const globals: GlobalData[] = inputBuffers.map((bytes, i) => {
       const dtype = usedArgs.get(i);
       if (!dtype) return null!; // This arg is unused, so we just blank it out.
-      return dtypedArray(dtype, buf);
+      return { bytes, values: dtypedArray(dtype, bytes) };
     });
     const outputArray = dtypedArray(kernel.dtype, outputBuffers[0]);
-
-    const checkBounds = (gid: number, bufidx: number) => {
-      if (gid < 0 || gid >= inputArrays.length)
-        throw new Error("gid out of bounds: " + gid);
-      if (bufidx < 0 || bufidx >= inputArrays[gid].length)
-        throw new Error("bufidx out of bounds: " + bufidx);
-    };
-    const globals: GlobalLoader = (gid: number, bufidx: number) => {
-      checkBounds(gid, bufidx);
-      return inputArrays[gid][bufidx];
-    };
-    globals.signbit = (gid: number, bufidx: number) => {
-      checkBounds(gid, bufidx);
-      const width = inputArrays[gid].BYTES_PER_ELEMENT;
-      return inputBuffers[gid][(bufidx + 1) * width - 1] >>> 7;
-    };
     if (!kernel.reduction) {
       for (let i = 0; i < kernel.size; i++) {
         outputArray[i] = exp.evaluate({ gidx: i }, globals);

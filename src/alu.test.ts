@@ -200,12 +200,18 @@ test("AluOp.Bitcast", () => {
 });
 
 test("AluOp.Signbit can inspect raw global values", () => {
-  const input = AluExp.globalIndex(DType.Float32, 0, 1, AluExp.i32(0));
-  const globals = Object.assign(() => NaN, {
-    signbit: () => 1,
-  });
+  const bits = new Uint32Array([0xffc00000, 0x7fc00000]);
+  const globals = [
+    {
+      values: new Float32Array(bits.buffer),
+      bytes: new Uint8Array(bits.buffer),
+    },
+  ];
+  const input = (index: number) =>
+    AluExp.globalIndex(DType.Float32, 0, 2, AluExp.i32(index));
 
-  expect(AluExp.signbit(input).evaluate({}, globals)).toBe(1);
+  expect(AluExp.signbit(input(0)).evaluate({}, globals)).toBe(1);
+  expect(AluExp.signbit(input(1)).evaluate({}, globals)).toBe(0);
 });
 
 test("AluOp.Threefry2x32", () => {

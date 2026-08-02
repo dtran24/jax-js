@@ -20,9 +20,22 @@ export type DataArray =
   | Float16Array<ArrayBuffer>
   | Float64Array<ArrayBuffer>;
 
-export interface GlobalLoader {
-  (gid: number, bufidx: number): any;
-  signbit?: (gid: number, bufidx: number) => number;
+export interface GlobalData {
+  readonly values: DataArray;
+  readonly bytes: Uint8Array<ArrayBuffer>;
+}
+
+function getGlobalData(
+  globals: readonly GlobalData[] | undefined,
+  gid: number,
+  bufidx: number,
+): GlobalData {
+  if (!globals) throw new Error("Missing globals");
+  const global = globals[gid];
+  if (!global) throw new Error("gid out of bounds: " + gid);
+  if (bufidx < 0 || bufidx >= global.values.length)
+    throw new Error("bufidx out of bounds: " + bufidx);
+  return global;
 }
 
 export const byteWidth = (dtype: DType): number => {
@@ -1068,7 +1081,10 @@ export class AluExp implements FpHashable {
    *
    * Note that the representation of Bool is as a number (0 or 1) here.
    */
-  evaluate(context: Record<string, any>, globals?: GlobalLoader): number {
+  evaluate(
+    context: Record<string, any>,
+    globals?: readonly GlobalData[],
+  ): number {
     if (AluGroup.Binary.has(this.op) || AluGroup.Compare.has(this.op)) {
       const x = this.src[0].evaluate(context, globals);
       const y = this.src[1].evaluate(context, globals);
@@ -1111,13 +1127,14 @@ export class AluExp implements FpHashable {
       if (
         this.op === AluOp.Signbit &&
         this.src[0].op === AluOp.GlobalIndex &&
-        isFloatDtype(this.src[0].dtype) &&
-        globals?.signbit
+        isFloatDtype(this.src[0].dtype)
       ) {
         const input = this.src[0];
         const gid: number = input.arg[0];
         const bufidx = input.src[0].evaluate(context, globals);
-        return globals.signbit(gid, bufidx);
+        const global = getGlobalData(globals, gid, bufidx);
+        const width = global.values.BYTES_PER_ELEMENT;
+        return global.bytes[(bufidx + 1) * width - 1] >>> 7;
       }
 
       const x = this.src[0].evaluate(context, globals);
@@ -1219,20 +1236,18 @@ export class AluExp implements FpHashable {
         return x;
       }
       case AluOp.GlobalIndex: {
-        if (!globals) throw new Error("Missing globals function");
         const gid: number = this.arg[0];
         const bufidx = this.src[0].evaluate(context, globals);
-        return globals(gid, bufidx);
+        return getGlobalData(globals, gid, bufidx).values[bufidx];
       }
       case AluOp.GlobalView: {
         // Note: This branch is very slow. It should be lowered before evaluation.
-        if (!globals) throw new Error("Missing globals function");
         const gid: number = this.arg[0];
         const st: ShapeTracker = this.arg[1];
         const [iexpr, vexpr] = st.toAluExp(this.src);
         if (vexpr.evaluate(context, globals)) {
           const bufidx = iexpr.evaluate(context, globals);
-          return globals(gid, bufidx);
+          return getGlobalData(globals, gid, bufidx).values[bufidx];
         } else {
           return 0;
         }
