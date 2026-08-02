@@ -2022,12 +2022,6 @@ suite.each(devices)("device:%s", (device) => {
         expect(a.js()).toEqual([i]);
       }
     });
-
-    test("supports an empty list of split indices", () => {
-      const x = np.arange(5);
-      const [a] = np.split(x, []);
-      expect(a.js()).toEqual([0, 1, 2, 3, 4]);
-    });
   });
 
   suite("jax.numpy.arraySplit()", () => {
@@ -2065,6 +2059,12 @@ suite.each(devices)("device:%s", (device) => {
       expect(a.js()).toEqual([0, 1]);
       expect(b.js()).toEqual([2, 3, 4]);
       expect(c.js()).toEqual([5, 6]);
+    });
+
+    test("supports an empty list of split indices", () => {
+      const x = np.arange(5);
+      const [a] = np.arraySplit(x, []);
+      expect(a.js()).toEqual([0, 1, 2, 3, 4]);
     });
 
     test("works inside jit", () => {
