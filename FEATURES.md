@@ -694,7 +694,7 @@ These modules are unimplemented:
 - `jax.example_libraries`
 - `jax.experimental`
 
-## [`optax`](https://jax-js.com/docs/_jax-js/onnx)
+## [`optax`](https://jax-js.com/docs/_jax-js/optax)
 
 We have ported a subset of the [Optax](https://github.com/google-deepmind/optax) gradient processing
 and optimization library at `@jax-js/optax`. You can install this alongside `@jax-js/jax`.
