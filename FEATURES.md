@@ -24,7 +24,7 @@ In the tables below, we use a color legend to refer to functions in JAX:
 
 ## [`jax`](https://docs.jax.dev/en/latest/jax.html)
 
-[API docs](https://jax-js.com/docs/modules/_jax-js_jax.html) for these functions.
+[API docs](https://jax-js.com/docs/_jax-js/jax.html) for these functions.
 
 | API                  | Support | Notes                                           |
 | -------------------- | ------- | ----------------------------------------------- |
