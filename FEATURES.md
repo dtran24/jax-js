@@ -169,7 +169,7 @@ Most operations behave the same way as they do in JAX.
 | `bitwise_or`          | 🟢      |                                         |
 | `bitwise_right_shift` | 🟢      | alias of `right_shift`                  |
 | `bitwise_xor`         | 🟢      |                                         |
-| `blackman`            | 🟠      |                                         |
+| `blackman`            | 🟢      |                                         |
 | `block`               | 🟠      |                                         |
 | `broadcast_arrays`    | 🟢      |                                         |
 | `broadcast_shapes`    | 🟢      |                                         |

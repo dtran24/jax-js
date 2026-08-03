@@ -1922,6 +1922,28 @@ export function hann(M: number): Array {
 }
 
 /**
+ * Return the Blackman window of size M, a taper formed with the first three
+ * terms of a summation of cosines.
+ *
+ * `w(n) = 0.42 - 0.5 * cos(2πn/(M-1)) + 0.08 * cos(4πn/(M-1))` for
+ * `0 <= n <= M-1`.
+ */
+export function blackman(M: number): Array {
+  if (M < 0 || !Number.isInteger(M)) {
+    throw new RangeError(
+      `Invalid window size for blackman: ${M}. Must be a non-negative integer.`,
+    );
+  }
+  if (M <= 1) {
+    return ones([M]);
+  }
+  return cos(linspace(0, 2 * Math.PI, M))
+    .mul(-0.5)
+    .add(cos(linspace(0, 4 * Math.PI, M)).mul(0.08))
+    .add(0.42);
+}
+
+/**
  * @function
  * Compute the Heaviside step function. It is defined piecewise:
  * - `heaviside(x1, x2) = 0` for `x1 < 0`,

@@ -2300,6 +2300,34 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.blackman()", () => {
+    test("blackman(5) matches reference values", () => {
+      const expected = [0, 0.34, 1, 0.34, 0];
+      expect(np.blackman(5).js()).toBeAllclose(expected, { atol: 1e-6 });
+    });
+
+    test("blackman(10) matches reference values", () => {
+      const expected = [
+        -1.38777878e-17, 5.08696327e-2, 2.58000502e-1, 6.3e-1, 9.51129866e-1,
+        9.51129866e-1, 6.3e-1, 2.58000502e-1, 5.08696327e-2, -1.38777878e-17,
+      ];
+      expect(np.blackman(10).js()).toBeAllclose(expected, { atol: 1e-6 });
+    });
+
+    test("blackman(1) returns [1]", () => {
+      expect(np.blackman(1).js()).toEqual([1]);
+    });
+
+    test("blackman(0) returns an empty array", () => {
+      expect(np.blackman(0).js()).toEqual([]);
+    });
+
+    test("rejects invalid window sizes", () => {
+      expect(() => np.blackman(-1)).toThrow(/non-negative integer/);
+      expect(() => np.blackman(0.5)).toThrow(/non-negative integer/);
+    });
+  });
+
   suite("jax.numpy.atan()", () => {
     const numDigits = hasStrictNumerics(device) ? 5 : 3;
 
