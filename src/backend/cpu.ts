@@ -1,7 +1,46 @@
-import { AluOp, dtypedArray, type GlobalLoader, Kernel } from "../alu";
+import {
+  AluExp,
+  AluOp,
+  byteWidth,
+  type DataArray,
+  DType,
+  dtypedArray,
+  isFloatDtype,
+  Kernel,
+} from "../alu";
 import { Backend, Device, Executable, Slot, SlotError } from "../backend";
 import { Routine, runCpuRoutine } from "../routine";
 import { tuneNullopt } from "../tuner";
+
+/**
+ * Rewrite `Signbit` of a float global load into an integer load of the
+ * element's sign byte, via a raw byte view of the same buffer exposed as
+ * global `numInputs + gid`.
+ *
+ * JS engines may canonicalize NaN when reading a float out of a typed array,
+ * losing its sign, so the sign bit must be read as an integer instead.
+ */
+function rewriteSignbitLoads(exp: AluExp, numInputs: number): AluExp {
+  return exp.rewrite((e) => {
+    if (e.op !== AluOp.Signbit) return;
+    const input = e.src[0];
+    if (input.op !== AluOp.GlobalIndex || !isFloatDtype(input.dtype)) return;
+    const [gid, len] = input.arg as [number, number];
+    const width = byteWidth(input.dtype);
+    // Little-endian: the sign bit is in the last byte of the element.
+    const byteIdx = AluExp.add(
+      AluExp.mul(input.src[0], AluExp.i32(width)),
+      AluExp.i32(width - 1),
+    );
+    const signByte = AluExp.globalIndex(
+      DType.Int32,
+      numInputs + gid,
+      len * width,
+      byteIdx,
+    );
+    return AluExp.cmplt(AluExp.i32(127), signByte);
+  });
+}
 
 /** Most basic implementation of `Backend` for testing. */
 export class CpuBackend implements Backend {
@@ -90,9 +129,12 @@ export class CpuBackend implements Backend {
     }
 
     const kernel = exe.source as Kernel;
-    const { exp, epilogue } = tuneNullopt(kernel);
+    let { exp, epilogue } = tuneNullopt(kernel);
     const inputBuffers = inputs.map((slot) => this.#getBuffer(slot));
     const outputBuffers = outputs.map((slot) => this.#getBuffer(slot));
+
+    exp = rewriteSignbitLoads(exp, inputBuffers.length);
+    epilogue = epilogue && rewriteSignbitLoads(epilogue, inputBuffers.length);
 
     const usedArgs = new Map(
       [
@@ -103,27 +145,25 @@ export class CpuBackend implements Backend {
       ].map((exp) => [exp.arg[0] as number, exp.dtype]),
     );
 
-    const inputArrays = inputBuffers.map((buf, i) => {
-      const dtype = usedArgs.get(i);
-      if (!dtype) return null!; // This arg is unused, so we just blank it out.
-      return dtypedArray(dtype, buf);
-    });
+    const inputArrays: (DataArray | Uint8Array<ArrayBuffer>)[] =
+      inputBuffers.map((buf, i) => {
+        const dtype = usedArgs.get(i);
+        if (!dtype) return null!; // This arg is unused, so we just blank it out.
+        return dtypedArray(dtype, buf);
+      });
+    for (const gid of usedArgs.keys()) {
+      // Byte views of the inputs, from rewritten signbit loads.
+      if (gid >= inputBuffers.length)
+        inputArrays[gid] = inputBuffers[gid - inputBuffers.length];
+    }
     const outputArray = dtypedArray(kernel.dtype, outputBuffers[0]);
 
-    const checkBounds = (gid: number, bufidx: number) => {
+    const globals = (gid: number, bufidx: number) => {
       if (gid < 0 || gid >= inputArrays.length)
         throw new Error("gid out of bounds: " + gid);
       if (bufidx < 0 || bufidx >= inputArrays[gid].length)
         throw new Error("bufidx out of bounds: " + bufidx);
-    };
-    const globals: GlobalLoader = (gid: number, bufidx: number) => {
-      checkBounds(gid, bufidx);
       return inputArrays[gid][bufidx];
-    };
-    globals.signbit = (gid: number, bufidx: number) => {
-      checkBounds(gid, bufidx);
-      const width = inputArrays[gid].BYTES_PER_ELEMENT;
-      return inputBuffers[gid][(bufidx + 1) * width - 1] >>> 7;
     };
     if (!kernel.reduction) {
       for (let i = 0; i < kernel.size; i++) {
