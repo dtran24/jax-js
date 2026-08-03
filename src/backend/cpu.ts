@@ -2,7 +2,6 @@ import {
   AluExp,
   AluOp,
   byteWidth,
-  type DataArray,
   DType,
   dtypedArray,
   isFloatDtype,
@@ -145,17 +144,15 @@ export class CpuBackend implements Backend {
       ].map((exp) => [exp.arg[0] as number, exp.dtype]),
     );
 
-    const inputArrays: (DataArray | Uint8Array<ArrayBuffer>)[] =
-      inputBuffers.map((buf, i) => {
+    const inputArrays: ArrayLike<number>[] = [
+      ...inputBuffers.map((buf, i) => {
         const dtype = usedArgs.get(i);
         if (!dtype) return null!; // This arg is unused, so we just blank it out.
         return dtypedArray(dtype, buf);
-      });
-    for (const gid of usedArgs.keys()) {
+      }),
       // Byte views of the inputs, from rewritten signbit loads.
-      if (gid >= inputBuffers.length)
-        inputArrays[gid] = inputBuffers[gid - inputBuffers.length];
-    }
+      ...inputBuffers,
+    ];
     const outputArray = dtypedArray(kernel.dtype, outputBuffers[0]);
 
     const globals = (gid: number, bufidx: number) => {
