@@ -10,7 +10,7 @@ import {
 } from "@jax-js/jax";
 import { beforeEach, expect, onTestFinished, suite, test } from "vitest";
 
-import { hasStrictNumerics, preservesNanSign } from "./setup";
+import { hasStrictNumerics } from "./setup";
 
 const devicesAvailable = await init();
 
@@ -1468,7 +1468,7 @@ suite.each(devices)("device:%s", (device) => {
     });
 
     test("preserves the sign of NaN", () => {
-      if (!preservesNanSign(device)) return;
+      if (!hasStrictNumerics(device)) return;
       const bits = new Uint32Array([0xffc00000, 0x7fc00000]); // [-NaN, NaN]
       const x = np.array(new Float32Array(bits.buffer));
       expect(np.signbit(x).js()).toEqual([true, false]);

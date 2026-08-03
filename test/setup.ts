@@ -37,12 +37,3 @@ expect.extend({
 export function hasStrictNumerics(device: Device): boolean {
   return device !== "webgl";
 }
-
-/**
- * The cpu backend reads floats out of typed arrays as JS numbers, and some JS
- * engines canonicalize NaN in the process, losing its sign. We skip tests that
- * depend on the sign of NaN for these devices.
- */
-export function preservesNanSign(device: Device): boolean {
-  return device !== "cpu" && hasStrictNumerics(device);
-}

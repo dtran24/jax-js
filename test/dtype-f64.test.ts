@@ -11,8 +11,6 @@ import {
 } from "@jax-js/jax";
 import { beforeEach, expect, suite, test } from "vitest";
 
-import { preservesNanSign } from "./setup";
-
 // f64 is currently only supported on WebAssembly.
 const devices = ["cpu", "wasm"] as const;
 
@@ -40,9 +38,8 @@ suite.each(devices)("device:%s", (device) => {
   });
 
   test("signbit() preserves the sign of f64 NaN", () => {
-    // On wasm, all current engines preserve the NaN sign through the
-    // f64 -> f32 demote, though the Wasm spec leaves it nondeterministic.
-    if (!preservesNanSign(device)) return;
+    // JS may canonicalize f64 NaNs on the CPU backend.
+    if (device === "cpu") return;
     const values = new Float64Array(2);
     // Write the NaNs as raw bits, since float writes may canonicalize NaN.
     const bits = new BigUint64Array(values.buffer);
