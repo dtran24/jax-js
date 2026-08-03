@@ -1900,6 +1900,30 @@ export function sign(x: ArrayLike): Array {
 }
 
 /**
+ * Test element-wise whether the sign bit is set.
+ *
+ * Unlike comparisons with zero, this distinguishes `-0` from `0`. The sign of
+ * NaN is also preserved, except where the platform canonicalizes NaN: JS
+ * engines may do so when the cpu backend reads floats out of typed arrays, and
+ * conversions of f16 NaN on GPU backends may lose the sign as well.
+ */
+export function signbit(x: ArrayLike): Array {
+  const arr = fudgeArray(x);
+  switch (arr.dtype) {
+    case DType.Bool:
+    case DType.Uint32:
+      return zerosLike(arr, { dtype: DType.Bool });
+    case DType.Int32:
+      return less(arr, 0);
+    default:
+      // Read the sign bit of floats through a bitcast. There is no 16- or
+      // 64-bit integer dtype, so f16 and f64 go through f32 first; the cast
+      // keeps the sign bit for every value class.
+      return less(arr.astype(DType.Float32).view(DType.Int32), 0);
+  }
+}
+
+/**
  * @function
  * Return the value with the magnitude of x and the sign of y, element-wise.
  */

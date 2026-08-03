@@ -10,7 +10,7 @@ import {
 } from "@jax-js/jax";
 import { beforeEach, expect, onTestFinished, suite, test } from "vitest";
 
-import { hasStrictNumerics } from "./setup";
+import { hasStrictNumerics, preservesNanSign } from "./setup";
 
 const devicesAvailable = await init();
 
@@ -1441,6 +1441,54 @@ suite.each(devices)("device:%s", (device) => {
     // TODO: Fix sign(NaN) returning 1 instead of NaN
     test.fails("works with NaN", () => {
       expect(np.sign(NaN).js()).toBeNaN();
+    });
+  });
+
+  suite("jax.numpy.signbit()", () => {
+    test("identifies negative values and signed zero", () => {
+      const x = np.array([-Infinity, -3, -0, 0, 2, Infinity]);
+      const result = np.signbit(x);
+      expect(result.dtype).toBe(np.bool);
+      expect(result.js()).toEqual([true, true, true, false, false, false]);
+    });
+
+    test("distinguishes signed zero for scalar and constant inputs", () => {
+      expect(np.signbit(np.array(-0)).js()).toBe(true);
+      expect(np.signbit(np.array([0, -0])).js()).toEqual([false, true]);
+    });
+
+    test("supports integer and boolean inputs", () => {
+      expect(
+        np.signbit(np.array([-2, 0, 3], { dtype: np.int32 })).js(),
+      ).toEqual([true, false, false]);
+      expect(
+        np.signbit(np.array([0, 1, 0xffffffff], { dtype: np.uint32 })).js(),
+      ).toEqual([false, false, false]);
+      expect(np.signbit(np.array([false, true])).js()).toEqual([false, false]);
+    });
+
+    test("preserves the sign of NaN", () => {
+      if (!preservesNanSign(device)) return;
+      const bits = new Uint32Array([0xffc00000, 0x7fc00000]); // [-NaN, NaN]
+      const x = np.array(new Float32Array(bits.buffer));
+      expect(np.signbit(x).js()).toEqual([true, false]);
+    });
+
+    test("works with jit and vmap", () => {
+      const signbitJit = jit((x: np.Array) => np.signbit(x));
+      expect(signbitJit(np.array([-0, 0, -4, 4])).js()).toEqual([
+        true,
+        false,
+        true,
+        false,
+      ]);
+
+      const signbitVmap = vmap((x: np.Array) => np.signbit(x));
+      expect(signbitVmap(np.array([-2, 0, 3])).js()).toEqual([
+        true,
+        false,
+        false,
+      ]);
     });
   });
 
