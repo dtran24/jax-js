@@ -1121,6 +1121,21 @@ export function diag(v: ArrayLike, k = 0): Array {
   }
 }
 
+/**
+ * Return the indices to access the main diagonal of an array.
+ *
+ * This returns a list of `ndim` index arrays, each holding `[0, 1, ..., n-1]`.
+ * They can be used with advanced indexing to access the main diagonal of an
+ * array with `ndim` dimensions, each of length `n`.
+ */
+export function diagIndices(n: number, ndim: number = 2): Array[] {
+  if (!Number.isInteger(n) || n < 0)
+    throw new Error(`n must be a nonnegative integer, got ${n}`);
+  if (!Number.isInteger(ndim) || ndim < 0)
+    throw new Error(`ndim must be a nonnegative integer, got ${ndim}`);
+  return range(ndim).map(() => arange(n));
+}
+
 /** Calculate the sum of the diagonal of an array along the given axes. */
 export function trace(a: ArrayLike, offset = 0, axis1 = 0, axis2 = 1): Array {
   return diagonal(a, offset, axis1, axis2).sum(-1);

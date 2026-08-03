@@ -281,6 +281,46 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.diagIndices()", () => {
+    test("returns indices for the main diagonal of a 2D array", () => {
+      const [rows, cols] = np.diagIndices(3);
+      expect(rows.dtype).toBe(np.int32);
+      expect(cols.dtype).toBe(np.int32);
+      expect(rows.js()).toEqual([0, 1, 2]);
+      expect(cols.js()).toEqual([0, 1, 2]);
+    });
+
+    test("supports higher-dimensional arrays", () => {
+      const indices = np.diagIndices(2, 3);
+      expect(indices).toHaveLength(3);
+      for (const index of indices) {
+        expect(index.js()).toEqual([0, 1]);
+      }
+    });
+
+    test("can be used to access the diagonal", () => {
+      const x = np.arange(9).reshape([3, 3]);
+      const [rows, cols] = np.diagIndices(3);
+      expect(x.slice(rows, cols).js()).toEqual([0, 4, 8]);
+    });
+
+    test("handles n=0 and ndim=0", () => {
+      const [rows, cols] = np.diagIndices(0);
+      expect(rows.js()).toEqual([]);
+      expect(cols.js()).toEqual([]);
+      expect(np.diagIndices(3, 0)).toHaveLength(0);
+    });
+
+    test("throws on invalid arguments", () => {
+      expect(() => np.diagIndices(-1)).toThrow(
+        "n must be a nonnegative integer",
+      );
+      expect(() => np.diagIndices(3, -1)).toThrow(
+        "ndim must be a nonnegative integer",
+      );
+    });
+  });
+
   suite("jax.numpy.diagonal()", () => {
     test("diagonal defaults to first two axes", () => {
       const a = np.arange(4).reshape([2, 2]);
