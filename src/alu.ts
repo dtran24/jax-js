@@ -155,11 +155,6 @@ export class AluExp implements FpHashable {
           throw new TypeError(`Bitcast from ${src[0].dtype} -> ${dtype}`);
         break;
 
-      case AluOp.Signbit:
-        if (dtype !== DType.Bool || src.length !== 1)
-          throw new TypeError("Signbit requires one numeric input");
-        break;
-
       case AluOp.Threefry2x32:
         if (dtype !== DType.Uint32 || src.some((x) => x.dtype !== DType.Uint32))
           throw new TypeError("Threefry2x32 requires uint32 types");
