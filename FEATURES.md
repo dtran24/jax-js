@@ -109,7 +109,7 @@ mostly meant for compatibility in browsers that don't support WebGPU, but you sh
 possible._
 
 Most operations behave the same way as they do in JAX.
-[API docs](https://jax-js.com/docs/modules/_jax-js_jax.numpy.html).
+[API docs](https://jax-js.com/docs/_jax-js/jax/numpy.html).
 
 | API                   | Support | Notes                                   |
 | --------------------- | ------- | --------------------------------------- |
