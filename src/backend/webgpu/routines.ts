@@ -1217,9 +1217,7 @@ function createFft(
     findPow2(0, device.limits.maxComputeWorkgroupSizeX),
   );
   const maxFactor = Math.max(1, ...params.factors);
-  const angleScale = params.inverse
-    ? "6.283185307179586"
-    : "-6.283185307179586";
+  const direction = params.inverse ? "1.0" : "-1.0";
   const digitReversal = params.factors
     .map(
       (factor) => `
@@ -1257,6 +1255,27 @@ ${digitReversal}
   return reversed;
 }
 
+// Twiddle factor e^(${direction} * 2*pi*i * m / denom) as (cos, sin). The
+// fraction is reduced to the first quadrant with integer arithmetic, since
+// sin/cos of an f32 angle cannot produce exact results at multiples of pi/2
+// (f32 rounding of pi alone gives sin(pi) ~ 8.7e-8).
+fn twiddle(m: u32, denom: u32) -> vec2<f32> {
+  let r = m % denom;
+  let quadrant = (4u * r) / denom;
+  let rem = (4u * r) % denom;
+  let phi = 1.5707963267948966 * (f32(rem) / f32(denom));
+  let c = cos(phi);
+  let s = sin(phi);
+  var w: vec2<f32>;
+  switch (quadrant) {
+    case 0u: { w = vec2(c, s); }
+    case 1u: { w = vec2(-s, c); }
+    case 2u: { w = vec2(-c, -s); }
+    default: { w = vec2(s, -c); }
+  }
+  return vec2(w.x, ${direction} * w.y);
+}
+
 @compute @workgroup_size(${workgroupSize})
 fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   let global = global_id.x + global_id.y * ${gridOffsetY * workgroupSize}u;
@@ -1291,26 +1310,22 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
 
   for (var q = 0u; q < fft_params.radix; q++) {
     let idx = start + q * fft_params.prev;
-    let angle = ${angleScale} * f32(q * j) / f32(span);
-    let c = cos(angle);
-    let s = sin(angle);
+    let w = twiddle(q * j, span);
     let xr = f32(output_real[idx]);
     let xi = f32(output_imag[idx]);
-    scratch_real[q] = xr * c - xi * s;
-    scratch_imag[q] = xr * s + xi * c;
+    scratch_real[q] = xr * w.x - xi * w.y;
+    scratch_imag[q] = xr * w.y + xi * w.x;
   }
 
   for (var p = 0u; p < fft_params.radix; p++) {
     var sum_real = 0.0;
     var sum_imag = 0.0;
     for (var q = 0u; q < fft_params.radix; q++) {
-      let angle = ${angleScale} * f32(q * p) / f32(fft_params.radix);
-      let c = cos(angle);
-      let s = sin(angle);
+      let w = twiddle(q * p, fft_params.radix);
       let xr = scratch_real[q];
       let xi = scratch_imag[q];
-      sum_real += xr * c - xi * s;
-      sum_imag += xr * s + xi * c;
+      sum_real += xr * w.x - xi * w.y;
+      sum_imag += xr * w.y + xi * w.x;
     }
     let idx = start + p * fft_params.prev;
     output_real[idx] = ${ty}(sum_real * scale);
