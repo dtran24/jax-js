@@ -2242,10 +2242,10 @@ export { power as pow };
 export function floatPower(x1: ArrayLike, x2: ArrayLike): Array {
   x1 = fudgeArray(x1);
   x2 = fudgeArray(x2);
-  if (!isFloatDtype(x1.dtype) && !isFloatDtype(x2.dtype)) {
-    x1 = x1.astype(DType.Float32);
-    x2 = x2.astype(DType.Float32);
-  }
+  const promotedDtype = core.promoteAvals(x1.aval, x2.aval).dtype;
+  const dtype = isFloatDtype(promotedDtype) ? promotedDtype : DType.Float32;
+  x1 = x1.astype(dtype);
+  x2 = x2.astype(dtype);
   return power(x1, x2);
 }
 

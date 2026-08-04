@@ -1777,8 +1777,9 @@ suite.each(devices)("device:%s", (device) => {
 
   suite("jax.numpy.floatPower()", () => {
     test("promotes integer inputs to float", () => {
-      const x = np.array([1, 2, 3, 4]);
-      const y = np.floatPower(x, 3);
+      const x = np.array([1, 2, 3, 4], { dtype: np.int32 });
+      const exponent = np.array(3, { dtype: np.float32 });
+      const y = np.floatPower(x, exponent);
       expect(y.dtype).toBe(np.float32);
       expect(y).toBeAllclose([1, 8, 27, 64]);
     });
