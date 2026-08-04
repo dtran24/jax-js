@@ -611,6 +611,94 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.isin()", () => {
+    test("tests membership element-wise", () => {
+      const element = np.array([
+        [0, 2],
+        [4, 6],
+      ]);
+      const testElements = np.array([1, 2, 4, 8]);
+      const result = np.isin(element, testElements);
+      expect(result.dtype).toBe(np.bool);
+      expect(result.js()).toEqual([
+        [false, true],
+        [true, false],
+      ]);
+    });
+
+    test("supports invert", () => {
+      const element = np.array([
+        [0, 2],
+        [4, 6],
+      ]);
+      const testElements = np.array([1, 2, 4, 8]);
+      expect(np.isin(element, testElements, { invert: true }).js()).toEqual([
+        [true, false],
+        [false, true],
+      ]);
+    });
+
+    test("flattens testElements of any shape", () => {
+      const element = np.array([1, 2, 3, 4]);
+      const testElements = np.array([
+        [1, 3],
+        [5, 7],
+      ]);
+      expect(np.isin(element, testElements).js()).toEqual([
+        true,
+        false,
+        true,
+        false,
+      ]);
+    });
+
+    test("handles scalars and empty testElements", () => {
+      expect(np.isin(3, np.array([1, 2, 3])).js()).toEqual(true);
+      expect(np.isin(np.array([1, 2]), np.array([])).js()).toEqual([
+        false,
+        false,
+      ]);
+      expect(
+        np.isin(np.array([1, 2]), np.array([]), { invert: true }).js(),
+      ).toEqual([true, true]);
+    });
+
+    test("handles empty element arrays", () => {
+      const result = np.isin(np.array([]), np.array([1, 2]));
+      expect(result.dtype).toBe(np.bool);
+      expect(result.js()).toEqual([]);
+      expect(
+        np.isin(np.array([]), np.array([1, 2]), { invert: true }).js(),
+      ).toEqual([]);
+      const empty2d = np.isin(np.zeros([2, 0]), np.array([1]));
+      expect(empty2d.shape).toEqual([2, 0]);
+      expect(empty2d.js()).toEqual([[], []]);
+    });
+
+    test("promotes mixed dtypes and NaN never matches", () => {
+      expect(np.isin(np.array([1, 2]), np.array([2.0, 3.5])).js()).toEqual([
+        false,
+        true,
+      ]);
+      expect(np.isin(np.array([NaN, 1]), np.array([NaN, 1])).js()).toEqual([
+        false,
+        true,
+      ]);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array, y: np.Array) => np.isin(x, y));
+      const result = f(np.array([1, 2, 3]), np.array([2, 3, 5]));
+      expect(result.js()).toEqual([false, true, true]);
+
+      const g = jit((x: np.Array, y: np.Array) =>
+        np.isin(x, y, { invert: true }),
+      );
+      const inverted = g(np.array([1, 2, 3]), np.array([2, 3, 5]));
+      expect(inverted.js()).toEqual([true, false, false]);
+    });
+  });
+
   suite("jax.numpy.transpose()", () => {
     test("transposes a 1D array (no-op)", () => {
       const x = np.array([1, 2, 3]);

@@ -2387,6 +2387,32 @@ export function corrcoef(x: ArrayLike, y?: ArrayLike): Array {
   return c.div(norm);
 }
 
+/**
+ * Test whether each element of an array is also present in a second array.
+ *
+ * Returns a boolean array of the same shape as `element` that is true where
+ * the element is in `testElements`, and false otherwise. If `invert` is true,
+ * the result is negated, as if by `logicalNot(isin(...))`.
+ */
+export function isin(
+  element: ArrayLike,
+  testElements: ArrayLike,
+  opts?: { invert?: boolean },
+): Array {
+  element = fudgeArray(element);
+  const outShape = element.shape;
+  if (iprod(outShape) === 0) {
+    // Reducing over an axis of a zero-size array is not supported, so handle
+    // this case separately.
+    fudgeArray(testElements).dispose();
+    return astype(element, bool);
+  }
+  const elt = expandDims(ravel(element), 1);
+  const test = ravel(testElements);
+  const result = any(equal(elt, test), 1);
+  return reshape(opts?.invert ? logicalNot(result) : result, outShape);
+}
+
 /** Test element-wise for positive or negative infinity, return bool array. */
 export function isinf(x: ArrayLike): Array {
   x = fudgeArray(x);

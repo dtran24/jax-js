@@ -284,7 +284,7 @@ Most operations behave the same way as they do in JAX.
 | `iscomplexobj`        | ⚪️      | complex numbers                         |
 | `isdtype`             | 🟠      |                                         |
 | `isfinite`            | 🟢      |                                         |
-| `isin`                | 🔴      |                                         |
+| `isin`                | 🟢      |                                         |
 | `isinf`               | 🟢      |                                         |
 | `isnan`               | 🟢      |                                         |
 | `isneginf`            | 🟢      |                                         |
