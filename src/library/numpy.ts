@@ -656,6 +656,23 @@ export function arraySplit(
   return splitBySizes(a, sizes, axis);
 }
 
+/**
+ * Split an array into multiple sub-arrays along the depth (third) axis.
+ *
+ * Equivalent to `split()` with `axis=2`. The input array must have at least
+ * three dimensions.
+ */
+export function dsplit(
+  a: ArrayLike,
+  indicesOrSections: number | number[],
+): Array[] {
+  a = fudgeArray(a);
+  if (a.ndim < 3) {
+    throw new Error("dsplit only works on arrays of 3 or more dimensions");
+  }
+  return split(a, indicesOrSections, 2);
+}
+
 function splitBySizes(a: Array, sizes: number[], axis: number): Array[] {
   // Split in groups of up to 8 outputs, as the transpose rule turns into a
   // Concatenate primitive that has limited input arguments.

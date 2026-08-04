@@ -213,7 +213,7 @@ Most operations behave the same way as they do in JAX.
 | `divide`              | 🟢      |                                         |
 | `divmod`              | 🟢      |                                         |
 | `dot`                 | 🟢      |                                         |
-| `dsplit`              | 🟠      | `split` is supported                    |
+| `dsplit`              | 🟢      |                                         |
 | `dstack`              | 🟢      |                                         |
 | `dtype`               | ⚪️      | can access `Array.dtype`                |
 | `ediff1d`             | 🟠      |                                         |

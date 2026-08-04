@@ -2076,6 +2076,67 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.dsplit()", () => {
+    test("splits a 3D array along the depth axis", () => {
+      const x = np.arange(16).reshape([2, 2, 4]);
+      const [a, b] = np.dsplit(x, 2);
+      expect(a.js()).toEqual([
+        [
+          [0, 1],
+          [4, 5],
+        ],
+        [
+          [8, 9],
+          [12, 13],
+        ],
+      ]);
+      expect(b.js()).toEqual([
+        [
+          [2, 3],
+          [6, 7],
+        ],
+        [
+          [10, 11],
+          [14, 15],
+        ],
+      ]);
+    });
+
+    test("supports explicit split indices", () => {
+      const x = np.arange(8).reshape([1, 2, 4]);
+      const [a, b, c] = np.dsplit(x, [1, 3]);
+      expect(a.js()).toEqual([[[0], [4]]]);
+      expect(b.js()).toEqual([
+        [
+          [1, 2],
+          [5, 6],
+        ],
+      ]);
+      expect(c.js()).toEqual([[[3], [7]]]);
+    });
+
+    test("throws on arrays with fewer than 3 dimensions", () => {
+      const x = np.arange(6).reshape([2, 3]);
+      expect(() => np.dsplit(x, 3)).toThrow(
+        "dsplit only works on arrays of 3 or more dimensions",
+      );
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => {
+        const [a, b] = np.dsplit(x, 2);
+        return np.concatenate([b, a], 2);
+      });
+      const y = f(np.arange(8).reshape([1, 2, 4]));
+      expect(y.js()).toEqual([
+        [
+          [2, 3, 0, 1],
+          [6, 7, 4, 5],
+        ],
+      ]);
+    });
+  });
+
   suite("jax.numpy.concatenate()", () => {
     // This suite also handles stack, hstack, vstack, dstack, etc.
 
