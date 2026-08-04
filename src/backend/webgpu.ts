@@ -428,13 +428,17 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
       }
     }
 
-    // After references are counted, we can generate the code.
-    const items = exps.map((ar) => ar.map((x) => gen.run(x)).map(strip1));
+    // After references are counted, we can generate the code. Note: the terms
+    // are spliced next to operators below, so they must keep their outer
+    // parentheses (`gen.run` output is always safe to embed; stripped output
+    // is not, e.g. `(a != b || c != d)` stripped and joined with `&&` would
+    // mix operators in a way WGSL rejects).
+    const items = exps.map((ar) => ar.map((x) => gen.run(x)));
     for (let i = 0; i < upcast; i++) {
       let rhs = items[i][0];
       for (let j = 1; j < unroll; j++) {
-        if (re.op === AluOp.Add) rhs = `${rhs} + ${items[i][j]}`;
-        else if (re.op === AluOp.Mul) rhs = `${rhs} * ${items[i][j]}`;
+        if (re.op === AluOp.Add) rhs = `(${rhs} + ${items[i][j]})`;
+        else if (re.op === AluOp.Mul) rhs = `(${rhs} * ${items[i][j]})`;
         else if (re.op === AluOp.Min) {
           // For booleans, min is AND; for numerics, use min()
           rhs =
@@ -449,18 +453,20 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
               : `max(${rhs}, ${items[i][j]})`;
         } else throw new Error(`Unsupported reduction op: ${re.op}`);
       }
-      if (re.op === AluOp.Add) wb.emit(`${acc[i]} += ${rhs};`);
-      else if (re.op === AluOp.Mul) wb.emit(`${acc[i]} *= ${rhs};`);
+      // `rhs` may only be stripped in slots that take a complete expression;
+      // the `&&` / `||` splices below need its outer parentheses.
+      if (re.op === AluOp.Add) wb.emit(`${acc[i]} += ${strip1(rhs)};`);
+      else if (re.op === AluOp.Mul) wb.emit(`${acc[i]} *= ${strip1(rhs)};`);
       else if (re.op === AluOp.Min) {
         // For booleans, min is AND; for numerics, use min()
         if (re.dtype === DType.Bool)
           wb.emit(`${acc[i]} = ${acc[i]} && ${rhs};`);
-        else wb.emit(`${acc[i]} = min(${acc[i]}, ${rhs});`);
+        else wb.emit(`${acc[i]} = min(${acc[i]}, ${strip1(rhs)});`);
       } else if (re.op === AluOp.Max) {
         // For booleans, max is OR; for numerics, use max()
         if (re.dtype === DType.Bool)
           wb.emit(`${acc[i]} = ${acc[i]} || ${rhs};`);
-        else wb.emit(`${acc[i]} = max(${acc[i]}, ${rhs});`);
+        else wb.emit(`${acc[i]} = max(${acc[i]}, ${strip1(rhs)});`);
       } else throw new Error(`Unsupported reduction op: ${re.op}`);
     }
     wb.emit(wb.popIndent, "}");

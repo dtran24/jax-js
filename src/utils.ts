@@ -353,9 +353,21 @@ export function recursiveFlatten<T>(ar: RecursiveArray<T>): T[] {
   return (ar as any).flat(Infinity); // Escape infinite type depth
 }
 
-/** Strip an outermost pair of nested parentheses from an expression, if any. */
+/**
+ * Strip an outermost pair of nested parentheses from an expression, if any.
+ *
+ * Only strips when the leading "(" matches the trailing ")", so expressions
+ * like `(a) + (b)` are left intact. The result is a complete expression, so
+ * callers must only use it in slots that accept one (an assignment RHS, a call
+ * argument, an index) — never splice it next to an operator.
+ */
 export function strip1(str: string): string {
   if (str[0] === "(" && str[str.length - 1] === ")") {
+    let depth = 0;
+    for (let i = 0; i < str.length - 1; i++) {
+      if (str[i] === "(") depth++;
+      else if (str[i] === ")" && --depth === 0) return str;
+    }
     return str.slice(1, -1);
   }
   return str;

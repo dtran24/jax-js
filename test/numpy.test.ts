@@ -2599,6 +2599,19 @@ suite.each(devices)("device:%s", (device) => {
       expect(result.shape).toEqual([2, 1]);
       expect(result.js()).toEqual([[true], [false]]);
     });
+
+    test("jit fuses float comparison into boolean reduction", () => {
+      // Regression test: on webgpu, the fused float `!=` term contains `||`
+      // (NaN check), and stripping its parentheses before joining with `&&`
+      // in the reduction produced an invalid shader (silently wrong results).
+      // This is `isin(x, y, invert=true)`: all(notEqual(x[:,None], y), 1).
+      const notIn = jit((x: np.Array, y: np.Array) =>
+        np.all(np.notEqual(np.expandDims(x, 1), y), 1),
+      );
+      const x = np.array([1, 2], { dtype: np.float32 });
+      const y = np.array([2, 5], { dtype: np.float32 });
+      expect(notIn(x, y).js()).toEqual([true, false]);
+    });
   });
 
   suite("jax.numpy.any()", () => {
@@ -2637,6 +2650,16 @@ suite.each(devices)("device:%s", (device) => {
       const result = np.any(x, 1, { keepdims: true });
       expect(result.shape).toEqual([2, 1]);
       expect(result.js()).toEqual([[false], [true]]);
+    });
+
+    test("jit fuses float comparison into boolean reduction", () => {
+      // Regression test, `isin(x, y)`: any(equal(x[:,None], y), 1).
+      const isIn = jit((x: np.Array, y: np.Array) =>
+        np.any(np.equal(np.expandDims(x, 1), y), 1),
+      );
+      const x = np.array([1, 2], { dtype: np.float32 });
+      const y = np.array([2, 5], { dtype: np.float32 });
+      expect(isIn(x, y).js()).toEqual([false, true]);
     });
   });
 
