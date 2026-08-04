@@ -2235,6 +2235,20 @@ export const power = jit(function power(x1: Array, x2: Array) {
 
 export { power as pow };
 
+/**
+ * Computes first array raised to power of second array, element-wise, after
+ * promoting inputs to a floating-point dtype.
+ */
+export function floatPower(x1: ArrayLike, x2: ArrayLike): Array {
+  x1 = fudgeArray(x1);
+  x2 = fudgeArray(x2);
+  if (!isFloatDtype(x1.dtype) && !isFloatDtype(x2.dtype)) {
+    x1 = x1.astype(DType.Float32);
+    x2 = x2.astype(DType.Float32);
+  }
+  return power(x1, x2);
+}
+
 /** @function Calculate the element-wise cube root of the input array. */
 export const cbrt = jit(function cbrt(x: Array) {
   // This isn't just power(x, 1/3) since we need to handle negative numbers.

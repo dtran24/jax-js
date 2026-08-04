@@ -236,7 +236,7 @@ Most operations behave the same way as they do in JAX.
 | `flip`                | 🟢      |                                         |
 | `fliplr`              | 🟢      |                                         |
 | `flipud`              | 🟢      |                                         |
-| `float_power`         | 🟠      |                                         |
+| `float_power`         | 🟢      |                                         |
 | `floor`               | 🟢      |                                         |
 | `floor_divide`        | 🟢      |                                         |
 | `fmax`                | 🟠      | use `maximum`                           |

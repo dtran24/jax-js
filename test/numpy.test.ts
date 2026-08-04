@@ -1775,6 +1775,38 @@ suite.each(devices)("device:%s", (device) => {
     }
   });
 
+  suite("jax.numpy.floatPower()", () => {
+    test("promotes integer inputs to float", () => {
+      const x = np.array([1, 2, 3, 4]);
+      const y = np.floatPower(x, 3);
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([1, 8, 27, 64]);
+    });
+
+    test("keeps floating-point inputs as-is", () => {
+      const y = np.floatPower(np.array([1.5, 2.5]), 2);
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([2.25, 6.25]);
+    });
+
+    test("fractional exponents", () => {
+      const y = np.floatPower(np.array([4, 9, 16]), 0.5);
+      expect(y).toBeAllclose([2, 3, 4]);
+    });
+
+    test("negative base with non-integer exponent is NaN", () => {
+      const y = np.floatPower(-3, np.array([0.5, 1.5, 2.5]));
+      expect(y.js()).toEqual([NaN, NaN, NaN]);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => np.floatPower(x, 2));
+      const y = f(np.array([1, 2, 3]));
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([1, 4, 9]);
+    });
+  });
+
   suite("jax.numpy.min()", () => {
     test("computes minimum of 1D array", () => {
       const x = np.array([3, 1, 4, 2]);
