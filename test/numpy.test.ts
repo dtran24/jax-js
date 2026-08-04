@@ -293,6 +293,8 @@ suite.each(devices)("device:%s", (device) => {
     test("supports higher-dimensional arrays", () => {
       const indices = np.diagIndices(2, 3);
       expect(indices).toHaveLength(3);
+      expect(indices[0]).toBe(indices[1]);
+      expect(indices[1]).toBe(indices[2]);
       for (const index of indices) {
         expect(index.js()).toEqual([0, 1]);
       }

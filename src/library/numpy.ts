@@ -1133,7 +1133,9 @@ export function diagIndices(n: number, ndim: number = 2): Array[] {
     throw new Error(`n must be a nonnegative integer, got ${n}`);
   if (!Number.isInteger(ndim) || ndim < 0)
     throw new Error(`ndim must be a nonnegative integer, got ${ndim}`);
-  return range(ndim).map(() => arange(n));
+  if (ndim === 0) return [];
+  const index = arange(n);
+  return [index, ...range(ndim - 1).map(() => index.ref)];
 }
 
 /** Calculate the sum of the diagonal of an array along the given axes. */
