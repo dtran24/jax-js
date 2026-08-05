@@ -1155,6 +1155,31 @@ export function diagIndices(n: number, ndim: number = 2): Array[] {
   return [index, ...range(ndim - 1).map(() => index.ref)];
 }
 
+/**
+ * Return the indices to access the main diagonal of an array.
+ *
+ * The input array must be at least 2D, and all dimensions must be of equal
+ * length. Returns a list of `ndim` index arrays of dtype `int32`, which can be
+ * used to access the main diagonal of the array with `Array.slice()`.
+ */
+export function diagIndicesFrom(arr: ArrayLike): Array[] {
+  const a = fudgeArray(arr);
+  const nd = a.ndim;
+  const aShape = a.shape;
+  a.dispose();
+  if (nd < 2) {
+    throw new Error(
+      `diagIndicesFrom: input array must be at least 2D, got ${nd}D`,
+    );
+  }
+  if (!aShape.every((s) => s === aShape[0])) {
+    throw new Error(
+      `diagIndicesFrom: all dimensions of input must be equal, got shape ${JSON.stringify(aShape)}`,
+    );
+  }
+  return diagIndices(aShape[0], nd);
+}
+
 /** Calculate the sum of the diagonal of an array along the given axes. */
 export function trace(a: ArrayLike, offset = 0, axis1 = 0, axis2 = 1): Array {
   return diagonal(a, offset, axis1, axis2).sum(-1);

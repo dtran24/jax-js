@@ -373,6 +373,63 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.diagIndicesFrom()", () => {
+    test("returns diagonal indices for a 2D array", () => {
+      const x = np.zeros([3, 3]);
+      const [rows, cols] = np.diagIndicesFrom(x);
+      expect(rows.dtype).toBe(np.int32);
+      expect(rows.js()).toEqual([0, 1, 2]);
+      expect(cols.js()).toEqual([0, 1, 2]);
+    });
+
+    test("indexes the main diagonal of an array", () => {
+      const x = np.array([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ]);
+      const [rows, cols] = np.diagIndicesFrom(x.ref);
+      expect(x.slice(rows, cols).js()).toEqual([1, 5, 9]);
+    });
+
+    test("returns ndim index arrays for higher-dimensional arrays", () => {
+      const x = np.zeros([2, 2, 2]);
+      const indices = np.diagIndicesFrom(x);
+      expect(indices).toHaveLength(3);
+      expect(indices[0]).toBe(indices[1]);
+      expect(indices[1]).toBe(indices[2]);
+      for (const idx of indices) {
+        expect(idx.js()).toEqual([0, 1]);
+      }
+    });
+
+    test("throws on non-square or low-dimensional arrays", () => {
+      expect(() => np.diagIndicesFrom(np.zeros([3, 4]))).toThrow(
+        "all dimensions of input must be equal",
+      );
+      expect(() => np.diagIndicesFrom(np.zeros([2, 2, 3]))).toThrow(
+        "all dimensions of input must be equal",
+      );
+      expect(() => np.diagIndicesFrom(np.zeros([3]))).toThrow(
+        "input array must be at least 2D",
+      );
+    });
+
+    test("works inside jit", () => {
+      const takeDiag = jit((x: np.Array) => {
+        const [rows, cols] = np.diagIndicesFrom(x.ref);
+        return x.slice(rows, cols);
+      });
+      const result = takeDiag(
+        np.array([
+          [1, 2],
+          [3, 4],
+        ]),
+      );
+      expect(result.js()).toEqual([1, 4]);
+    });
+  });
+
   suite("jax.numpy.tri()", () => {
     test("computes lower-triangular matrix", () => {
       const x = np.tri(3);

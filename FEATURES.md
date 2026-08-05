@@ -205,7 +205,7 @@ Most operations behave the same way as they do in JAX.
 | `delete`              | 🟠      |                                         |
 | `diag`                | 🟢      |                                         |
 | `diag_indices`        | 🟢      |                                         |
-| `diag_indices_from`   | 🟠      |                                         |
+| `diag_indices_from`   | 🟢      |                                         |
 | `diagflat`            | 🟠      |                                         |
 | `diagonal`            | 🟢      |                                         |
 | `diff`                | 🟠      |                                         |
