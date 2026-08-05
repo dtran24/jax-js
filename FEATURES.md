@@ -239,7 +239,7 @@ Most operations behave the same way as they do in JAX.
 | `float_power`         | 🟠      |                                         |
 | `floor`               | 🟢      |                                         |
 | `floor_divide`        | 🟢      |                                         |
-| `fmax`                | 🟠      | use `maximum`                           |
+| `fmax`                | 🟢      |                                         |
 | `fmin`                | 🟠      | use `minimum`                           |
 | `fmod`                | 🟢      |                                         |
 | `frexp`               | 🟢      |                                         |

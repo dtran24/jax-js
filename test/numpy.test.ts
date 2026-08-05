@@ -1420,6 +1420,52 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.fmax()", () => {
+    test("computes element-wise maximum", () => {
+      const x = np.array([1, 2, 3]);
+      const y = np.array([4, 2, 0]);
+      const z = np.fmax(x, y);
+      expect(z.js()).toEqual([4, 2, 3]);
+    });
+
+    test("broadcasts inputs", () => {
+      const x = np.array([
+        [1, 5],
+        [4, 2],
+      ]);
+      const y = np.array([3, 3]);
+      expect(np.fmax(x, y).js()).toEqual([
+        [3, 5],
+        [4, 3],
+      ]);
+    });
+
+    test("ignores NaN unless both elements are NaN", () => {
+      const x = np.array([1, NaN, NaN, 5]);
+      const y = np.array([NaN, 3, NaN, 2]);
+      const z = np.fmax(x, y);
+      expect(z.js()).toEqual([1, 3, NaN, 5]);
+    });
+
+    test("handles infinities", () => {
+      const x = np.array([-Infinity, Infinity, NaN]);
+      const y = np.array([2, NaN, -Infinity]);
+      expect(np.fmax(x, y).js()).toEqual([2, Infinity, -Infinity]);
+    });
+
+    test("works with jvp", () => {
+      const x = np.array([1, 1, 3]);
+      const y = np.array([4, 2, 0]);
+      const [z, dz] = jvp(
+        (x: np.Array, y: np.Array) => np.fmax(x, y),
+        [x, y],
+        [np.ones([3]), np.zeros([3])],
+      );
+      expect(z.js()).toEqual([4, 2, 3]);
+      expect(dz.js()).toEqual([0, 0, 1]);
+    });
+  });
+
   suite("jax.numpy.absolute()", () => {
     test("computes absolute value", () => {
       const x = np.array([-1, 2, -3]);

@@ -2448,3 +2448,14 @@ export const isfinite = jit(function isfinite(x: Array): Array {
   if (!isFloatDtype(x.dtype)) return fullLike(x, true);
   return isnan(x.ref).add(isinf(x)).notEqual(true);
 });
+
+/**
+ * @function
+ * Element-wise maximum of two arrays, ignoring NaNs.
+ *
+ * Unlike `maximum`, if one of the two elements is NaN, the other is returned.
+ * NaN is only propagated when both elements are NaN.
+ */
+export const fmax = jit(function fmax(x1: Array, x2: Array): Array {
+  return where(greater(x1.ref, x2.ref).add(isnan(x2.ref)), x1, x2);
+});
