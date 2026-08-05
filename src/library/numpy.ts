@@ -1989,6 +1989,12 @@ const I0_COEF_B = [
   8.044904110141088e-1,
 ];
 
+// The leading coefficients in the float64 expansions contribute below float32
+// result precision. Omitting them produces the shorter Cephes float32
+// expansions and keeps compiled i0 graphs substantially smaller.
+const I0_COEF_A_F32 = I0_COEF_A.slice(12);
+const I0_COEF_B_F32 = I0_COEF_B.slice(18);
+
 /**
  * Evaluate a Chebyshev series at `x` with the Clenshaw recurrence, consuming
  * `x`. Requires at least four coefficients.
@@ -2024,16 +2030,30 @@ function chbevl(x: Array, coefs: number[]): Array {
 export function i0(x: ArrayLike): Array {
   x = fudgeArray(x);
   if (!isFloatDtype(x.dtype)) x = astype(x, DType.Float32);
+  const outputDtype = x.dtype;
   const a = absolute(x);
+  // The Cephes coefficients are not accurate enough when evaluated directly
+  // in f16. Match JAX by evaluating the scaled approximation in f32 and
+  // casting it back before combining it with exp(|x|).
+  let approxA = a.ref;
+  if (approxA.dtype === DType.Float16) {
+    approxA = astype(approxA, DType.Float32);
+  }
+  const coefsA = approxA.dtype === DType.Float64 ? I0_COEF_A : I0_COEF_A_F32;
+  const coefsB = approxA.dtype === DType.Float64 ? I0_COEF_B : I0_COEF_B_F32;
   // Both where() branches are always evaluated, so clamp `a` into each
   // branch's domain to keep the unselected branch finite (an Inf/NaN there
   // would otherwise leak into the gradient).
-  const small = chbevl(minimum(a.ref, 8).div(2).sub(2), I0_COEF_A);
-  const aBig = maximum(a.ref, 8);
-  const big = chbevl(trueDivide(32, aBig.ref).sub(2), I0_COEF_B).div(
-    sqrt(aBig),
-  );
-  return exp(a.ref).mul(where(lessEqual(a, 8), small, big));
+  const small = chbevl(minimum(approxA.ref, 8).div(2).sub(2), coefsA);
+  const aBig = maximum(approxA.ref, 8);
+  const big = chbevl(trueDivide(32, aBig.ref).sub(2), coefsB).div(sqrt(aBig));
+  let scaled = where(lessEqual(approxA, 8), small, big);
+  if (outputDtype === DType.Float16) scaled = astype(scaled, outputDtype);
+  const result = exp(a.ref).mul(scaled);
+  // The Chebyshev approximation has a tiny rounding residual in its derivative
+  // at zero. Selecting the exact value there also gives the mathematically
+  // correct zero gradient, as JAX does with a custom JVP.
+  return where(equal(a, 0), 1, result);
 }
 
 /** Element-wise inverse cosine function (inverse of cos). */

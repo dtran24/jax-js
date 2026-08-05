@@ -2342,7 +2342,9 @@ suite.each(devices)("device:%s", (device) => {
         0, 0.25789430539089625, 0.56515910399248503, 1.5906368546373288,
         2670.9883037012551,
       ];
-      expect(dx.js()).toBeAllclose(expected, { rtol: 1e-4, atol: 1e-4 });
+      const actual = dx.js();
+      expect(actual[0]).toBe(0);
+      expect(actual).toBeAllclose(expected, { rtol: 1e-4, atol: 1e-4 });
     });
 
     if (device !== "webgl") {

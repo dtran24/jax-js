@@ -68,6 +68,18 @@ suite.each(devices)("device:%s", (device) => {
     expect(y).toBeAllclose([-0.15865525, 0.0, 0.84134475]);
   });
 
+  test("i0() uses the full-precision coefficients", () => {
+    const x = np.array([0, 1, 8, 10], { dtype: np.float64 });
+    const y = np.i0(x);
+    expect(y.dtype).toBe(np.float64);
+    const expected = np.array(
+      [1, 1.2660658777520082, 427.56411572180474, 2815.7166284662549],
+      { dtype: np.float64 },
+    );
+    // The wasm backend's transcendental builtins have float32-like accuracy.
+    expect(y).toBeAllclose(expected, { rtol: device === "cpu" ? 1e-12 : 1e-6 });
+  });
+
   test("precision of f64 is high", async () => {
     const a = np.array([1 + 1e-15, 1 + 2e-15], { dtype: np.float64 });
     await a.blockUntilReady();
