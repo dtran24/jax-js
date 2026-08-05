@@ -240,7 +240,7 @@ Most operations behave the same way as they do in JAX.
 | `floor`               | 🟢      |                                         |
 | `floor_divide`        | 🟢      |                                         |
 | `fmax`                | 🟠      | use `maximum`                           |
-| `fmin`                | 🟠      | use `minimum`                           |
+| `fmin`                | 🟢      |                                         |
 | `fmod`                | 🟢      |                                         |
 | `frexp`               | 🟢      |                                         |
 | `frombuffer`          | 🟠      |                                         |

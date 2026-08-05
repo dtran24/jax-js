@@ -1399,6 +1399,46 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.fmin()", () => {
+    test("computes element-wise minimum", () => {
+      const x = np.array([1, 2, 3]);
+      const y = np.array([4, 2, 0]);
+      const z = np.fmin(x, y);
+      expect(z.js()).toEqual([1, 2, 0]);
+    });
+
+    test("ignores NaN unless both elements are NaN", () => {
+      const x = np.array([NaN, 2, NaN, -Infinity]);
+      const y = np.array([5, NaN, NaN, 3]);
+      const z = np.fmin(x, y);
+      expect(z.js()).toEqual([5, 2, NaN, -Infinity]);
+    });
+
+    test("broadcasts inputs", () => {
+      const x = np.array([
+        [1, 5],
+        [4, 2],
+      ]);
+      const z = np.fmin(x, np.array([3]));
+      expect(z.js()).toEqual([
+        [1, 3],
+        [3, 2],
+      ]);
+    });
+
+    test("works with jvp", () => {
+      const x = np.array([1, 3, 3]);
+      const y = np.array([4, 2, 0]);
+      const [z, dz] = jvp(
+        (x: np.Array, y: np.Array) => np.fmin(x, y),
+        [x, y],
+        [np.ones([3]), np.zeros([3])],
+      );
+      expect(z.js()).toEqual([1, 2, 0]);
+      expect(dz.js()).toEqual([1, 0, 0]);
+    });
+  });
+
   suite("jax.numpy.maximum()", () => {
     test("computes element-wise maximum", () => {
       const x = np.array([1, 2, 3]);
