@@ -159,7 +159,7 @@ Most operations behave the same way as they do in JAX.
 | `atleast_2d`          | ⚪️      | confusing, use `reshape`                |
 | `atleast_3d`          | ⚪️      | confusing, use `reshape`                |
 | `average`             | 🟢      |                                         |
-| `bartlett`            | 🟠      |                                         |
+| `bartlett`            | 🟢      |                                         |
 | `bincount`            | 🟠      |                                         |
 | `bitwise_and`         | 🟢      |                                         |
 | `bitwise_count`       | 🟠      |                                         |

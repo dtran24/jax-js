@@ -93,6 +93,35 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.bartlett()", () => {
+    test("odd window size", () => {
+      const w = np.bartlett(5);
+      expect(w.dtype).toBe(np.float32);
+      expect(w).toBeAllclose([0, 0.5, 1, 0.5, 0]);
+    });
+
+    test("even window size", () => {
+      const w = np.bartlett(4);
+      expect(w).toBeAllclose([0, 2 / 3, 2 / 3, 0]);
+    });
+
+    test("larger window matches numpy", () => {
+      const w = np.bartlett(9);
+      expect(w).toBeAllclose([0, 0.25, 0.5, 0.75, 1, 0.75, 0.5, 0.25, 0]);
+    });
+
+    test("size 0 and 1 edge cases", () => {
+      expect(np.bartlett(0).js()).toEqual([]);
+      expect(np.bartlett(1).js()).toEqual([1]);
+      expect(np.bartlett(2).js()).toEqual([0, 0]);
+    });
+
+    test("works inside jit", () => {
+      const f = jit(() => np.bartlett(5).sum());
+      expect(f()).toBeAllclose(2);
+    });
+  });
+
   suite("jax.numpy.average()", () => {
     test("no weights is same as mean", () => {
       const x = np.array([1, 2, 3, 4]);

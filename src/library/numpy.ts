@@ -1911,6 +1911,16 @@ export const copysign = jit(function copysign(x: Array, y: Array): Array {
 export const positive = fudgeArray;
 
 /**
+ * Return the Bartlett window of size M, a triangular taper.
+ *
+ * `w(n) = 1 - |2n - (M-1)| / (M-1)` for `0 <= n <= M-1`.
+ */
+export function bartlett(M: number): Array {
+  if (M <= 1) return ones([M]);
+  return subtract(1, absolute(linspace(-1, 1, M)));
+}
+
+/**
  * Return the Hann window of size M, a taper with a weighted cosine bell.
  *
  * `w(n) = 0.5 - 0.5 * cos(2πn/(M-1))` for `0 <= n <= M-1`.
