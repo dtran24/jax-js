@@ -2300,6 +2300,63 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.i0()", () => {
+    test("small argument branch (|x| <= 8)", () => {
+      const x = np.array([0, 0.5, 1, 2, 5, 8]);
+      const expected = [
+        1, 1.0634833707413236, 1.2660658777520082, 2.2795853023360668,
+        27.239871823604449, 427.56411572180474,
+      ];
+      expect(np.i0(x).js()).toBeAllclose(expected, { rtol: 1e-6 });
+    });
+
+    test("large argument branch (|x| > 8)", () => {
+      const x = np.array([8.5, 10, 15, 20]);
+      const expected = [
+        683.16192699011583, 2815.7166284662549, 339649.37329791387,
+        43558282.559553526,
+      ];
+      expect(np.i0(x).js()).toBeAllclose(expected, { rtol: 1e-6 });
+    });
+
+    test("is an even function", () => {
+      const x = np.array([0.5, 2, 7.5, 12]);
+      const negX = np.array([-0.5, -2, -7.5, -12]);
+      expect(np.i0(x).js()).toBeAllclose(np.i0(negX).js());
+    });
+
+    test("promotes integer inputs to float", () => {
+      const result = np.i0(np.array([0, 1, 2], { dtype: np.int32 }));
+      expect(result.dtype).toBe(np.float32);
+      expect(result.js()).toBeAllclose(
+        [1, 1.2660658777520082, 2.2795853023360668],
+        { rtol: 1e-6 },
+      );
+    });
+
+    test("grad of i0 is i1", () => {
+      // d/dx i0(x) = i1(x), including x = 0 where i1(0) = 0.
+      const x = np.array([0, 0.5, 1, 2, 10]);
+      const dx = grad((x: np.Array) => np.i0(x).sum())(x);
+      const expected = [
+        0, 0.25789430539089625, 0.56515910399248503, 1.5906368546373288,
+        2670.9883037012551,
+      ];
+      expect(dx.js()).toBeAllclose(expected, { rtol: 1e-4, atol: 1e-4 });
+    });
+
+    if (device !== "webgl") {
+      // WebGL fails to compile the single fused shader for the full graph.
+      test("works inside jit", () => {
+        const f = jit((x: np.Array) => np.i0(x.mul(2)));
+        expect(f(np.array([0.5, 5])).js()).toBeAllclose(
+          [1.2660658777520082, 2815.7166284662549],
+          { rtol: 1e-6 },
+        );
+      });
+    }
+  });
+
   suite("jax.numpy.atan()", () => {
     const numDigits = hasStrictNumerics(device) ? 5 : 3;
 

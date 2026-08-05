@@ -268,7 +268,7 @@ Most operations behave the same way as they do in JAX.
 | `hsplit`              | 🟠      | `split` is supported                    |
 | `hstack`              | 🟢      |                                         |
 | `hypot`               | 🟡      | implemented as `sqrt(x^2 + y^2)`        |
-| `i0`                  | 🔴      | transcendental                          |
+| `i0`                  | 🟢      |                                         |
 | `identity`            | 🟢      |                                         |
 | `iinfo`               | 🟢      |                                         |
 | `imag`                | ⚪️      | complex numbers                         |

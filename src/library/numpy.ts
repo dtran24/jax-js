@@ -1960,6 +1960,82 @@ export const sinc = jit(function sinc(x: Array): Array {
   return where(equal(x, 0), 1, sin(pix.ref).div(pix));
 });
 
+// Chebyshev expansions from Cephes, also used by NumPy's `i0`. `I0_COEF_A`
+// approximates `exp(-x) i0(x)` on [0, 8] in terms of `x/2 - 2`, and
+// `I0_COEF_B` approximates `exp(-x) sqrt(x) i0(x)` on [8, inf) in terms of
+// `32/x - 2`.
+const I0_COEF_A = [
+  -4.4153416464793395e-18, 3.3307945188222384e-17, -2.431279846547955e-16,
+  1.715391285555133e-15, -1.1685332877993451e-14, 7.676185498604936e-14,
+  -4.856446783111929e-13, 2.95505266312964e-12, -1.726826291441556e-11,
+  9.675809035373237e-11, -5.189795601635263e-10, 2.6598237246823866e-9,
+  -1.300025009986248e-8, 6.046995022541919e-8, -2.670793853940612e-7,
+  1.1173875391201037e-6, -4.4167383584587505e-6, 1.6448448070728896e-5,
+  -5.754195010082104e-5, 1.8850288509584165e-4, -5.763755745385824e-4,
+  1.6394756169413357e-3, -4.324309995050576e-3, 1.0546460394594998e-2,
+  -2.373741480589947e-2, 4.930528423967071e-2, -9.490109704804764e-2,
+  1.7162090152220877e-1, -3.046826723431984e-1, 6.767952744094761e-1,
+];
+
+const I0_COEF_B = [
+  -7.233180487874754e-18, -4.830504485944182e-18, 4.46562142029676e-17,
+  3.461222867697461e-17, -2.8276239805165836e-16, -3.425485619677219e-16,
+  1.7725601330565263e-15, 3.8116806693526224e-15, -9.554846698828307e-15,
+  -4.150569347287222e-14, 1.54008621752141e-14, 3.8527783827421426e-13,
+  7.180124451383666e-13, -1.7941785315068062e-12, -1.3215811840447713e-11,
+  -3.1499165279632416e-11, 1.1889147107846439e-11, 4.94060238822497e-10,
+  3.3962320257083865e-9, 2.266668990498178e-8, 2.0489185894690638e-7,
+  2.8913705208347567e-6, 6.889758346916825e-5, 3.3691164782556943e-3,
+  8.044904110141088e-1,
+];
+
+/**
+ * Evaluate a Chebyshev series at `x` with the Clenshaw recurrence, consuming
+ * `x`. Requires at least four coefficients.
+ */
+function chbevl(x: Array, coefs: number[]): Array {
+  const n = coefs.length;
+  // The recurrence is b0 = x*b1 - b2 + coefs[i], with (b1, b2) trailing
+  // values of b0. The first two steps have constant b1/b2 terms.
+  let b1 = multiply(x.ref, coefs[0]).add(coefs[1]);
+  let b0 = multiply(x.ref, b1.ref).sub(coefs[0]).add(coefs[2]);
+  for (let i = 3; i < n - 1; i++) {
+    const next = multiply(x.ref, b0.ref).sub(b1).add(coefs[i]);
+    b1 = b0;
+    b0 = next;
+  }
+  // In the final step, b1 becomes the recurrence's b2 term, which appears
+  // once more in the series total 0.5 * (b0 - b2).
+  const last = multiply(x, b0)
+    .sub(b1.ref)
+    .add(coefs[n - 1]);
+  return last.sub(b1).mul(0.5);
+}
+
+/**
+ * Compute the modified Bessel function of the first kind, order zero.
+ *
+ * Uses the same approximations as NumPy: Chebyshev expansions from the Cephes
+ * library, evaluated at `|x|` with a branch cut at `|x| = 8`.
+ *
+ * This is a plain composite function (not wrapped in `jit`) so that taking
+ * its gradient in eager mode stays linear in the length of the expansions.
+ */
+export function i0(x: ArrayLike): Array {
+  x = fudgeArray(x);
+  if (!isFloatDtype(x.dtype)) x = astype(x, DType.Float32);
+  const a = absolute(x);
+  // Both where() branches are always evaluated, so clamp `a` into each
+  // branch's domain to keep the unselected branch finite (an Inf/NaN there
+  // would otherwise leak into the gradient).
+  const small = chbevl(minimum(a.ref, 8).div(2).sub(2), I0_COEF_A);
+  const aBig = maximum(a.ref, 8);
+  const big = chbevl(trueDivide(32, aBig.ref).sub(2), I0_COEF_B).div(
+    sqrt(aBig),
+  );
+  return exp(a.ref).mul(where(lessEqual(a, 8), small, big));
+}
+
 /** Element-wise inverse cosine function (inverse of cos). */
 export function acos(x: ArrayLike): Array {
   return subtract(pi / 2, asin(x));
