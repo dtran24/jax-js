@@ -116,6 +116,11 @@ suite.each(devices)("device:%s", (device) => {
       expect(np.bartlett(2).js()).toEqual([0, 0]);
     });
 
+    test("rejects invalid window sizes", () => {
+      expect(() => np.bartlett(-1)).toThrow(/non-negative integer/);
+      expect(() => np.bartlett(0.5)).toThrow(/non-negative integer/);
+    });
+
     test("works inside jit", () => {
       const f = jit(() => np.bartlett(5).sum());
       expect(f()).toBeAllclose(2);

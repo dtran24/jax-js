@@ -1916,6 +1916,11 @@ export const positive = fudgeArray;
  * `w(n) = 1 - |2n - (M-1)| / (M-1)` for `0 <= n <= M-1`.
  */
 export function bartlett(M: number): Array {
+  if (M < 0 || !Number.isInteger(M)) {
+    throw new RangeError(
+      `Invalid window size for bartlett: ${M}. Must be a non-negative integer.`,
+    );
+  }
   if (M <= 1) return ones([M]);
   return subtract(1, absolute(linspace(-1, 1, M)));
 }
