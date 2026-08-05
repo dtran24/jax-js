@@ -281,6 +281,48 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.diagIndices()", () => {
+    test("returns indices for the main diagonal of a 2D array", () => {
+      const [rows, cols] = np.diagIndices(3);
+      expect(rows.dtype).toBe(np.int32);
+      expect(cols.dtype).toBe(np.int32);
+      expect(rows.js()).toEqual([0, 1, 2]);
+      expect(cols.js()).toEqual([0, 1, 2]);
+    });
+
+    test("supports higher-dimensional arrays", () => {
+      const indices = np.diagIndices(2, 3);
+      expect(indices).toHaveLength(3);
+      expect(indices[0]).toBe(indices[1]);
+      expect(indices[1]).toBe(indices[2]);
+      for (const index of indices) {
+        expect(index.js()).toEqual([0, 1]);
+      }
+    });
+
+    test("can be used to access the diagonal", () => {
+      const x = np.arange(9).reshape([3, 3]);
+      const [rows, cols] = np.diagIndices(3);
+      expect(x.slice(rows, cols).js()).toEqual([0, 4, 8]);
+    });
+
+    test("handles n=0 and ndim=0", () => {
+      const [rows, cols] = np.diagIndices(0);
+      expect(rows.js()).toEqual([]);
+      expect(cols.js()).toEqual([]);
+      expect(np.diagIndices(3, 0)).toHaveLength(0);
+    });
+
+    test("throws on invalid arguments", () => {
+      expect(() => np.diagIndices(-1)).toThrow(
+        "n must be a nonnegative integer",
+      );
+      expect(() => np.diagIndices(3, -1)).toThrow(
+        "ndim must be a nonnegative integer",
+      );
+    });
+  });
+
   suite("jax.numpy.diagonal()", () => {
     test("diagonal defaults to first two axes", () => {
       const a = np.arange(4).reshape([2, 2]);
@@ -1444,6 +1486,54 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.signbit()", () => {
+    test("identifies negative values and signed zero", () => {
+      const x = np.array([-Infinity, -3, -0, 0, 2, Infinity]);
+      const result = np.signbit(x);
+      expect(result.dtype).toBe(np.bool);
+      expect(result.js()).toEqual([true, true, true, false, false, false]);
+    });
+
+    test("distinguishes signed zero for scalar and constant inputs", () => {
+      expect(np.signbit(np.array(-0)).js()).toBe(true);
+      expect(np.signbit(np.array([0, -0])).js()).toEqual([false, true]);
+    });
+
+    test("supports integer and boolean inputs", () => {
+      expect(
+        np.signbit(np.array([-2, 0, 3], { dtype: np.int32 })).js(),
+      ).toEqual([true, false, false]);
+      expect(
+        np.signbit(np.array([0, 1, 0xffffffff], { dtype: np.uint32 })).js(),
+      ).toEqual([false, false, false]);
+      expect(np.signbit(np.array([false, true])).js()).toEqual([false, false]);
+    });
+
+    test("preserves the sign of NaN", () => {
+      if (!hasStrictNumerics(device)) return;
+      const bits = new Uint32Array([0xffc00000, 0x7fc00000]); // [-NaN, NaN]
+      const x = np.array(new Float32Array(bits.buffer));
+      expect(np.signbit(x).js()).toEqual([true, false]);
+    });
+
+    test("works with jit and vmap", () => {
+      const signbitJit = jit((x: np.Array) => np.signbit(x));
+      expect(signbitJit(np.array([-0, 0, -4, 4])).js()).toEqual([
+        true,
+        false,
+        true,
+        false,
+      ]);
+
+      const signbitVmap = vmap((x: np.Array) => np.signbit(x));
+      expect(signbitVmap(np.array([-2, 0, 3])).js()).toEqual([
+        true,
+        false,
+        false,
+      ]);
+    });
+  });
+
   suite("jax.numpy.reciprocal()", () => {
     test("computes element-wise reciprocal", () => {
       const x = np.array([1, 2, 3]);
@@ -1775,6 +1865,39 @@ suite.each(devices)("device:%s", (device) => {
     }
   });
 
+  suite("jax.numpy.floatPower()", () => {
+    test("promotes integer inputs to float", () => {
+      const x = np.array([1, 2, 3, 4], { dtype: np.int32 });
+      const exponent = np.array(3, { dtype: np.float32 });
+      const y = np.floatPower(x, exponent);
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([1, 8, 27, 64]);
+    });
+
+    test("keeps floating-point inputs as-is", () => {
+      const y = np.floatPower(np.array([1.5, 2.5]), 2);
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([2.25, 6.25]);
+    });
+
+    test("fractional exponents", () => {
+      const y = np.floatPower(np.array([4, 9, 16]), 0.5);
+      expect(y).toBeAllclose([2, 3, 4]);
+    });
+
+    test("negative base with non-integer exponent is NaN", () => {
+      const y = np.floatPower(-3, np.array([0.5, 1.5, 2.5]));
+      expect(y.js()).toEqual([NaN, NaN, NaN]);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => np.floatPower(x, 2));
+      const y = f(np.array([1, 2, 3]));
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([1, 4, 9]);
+    });
+  });
+
   suite("jax.numpy.min()", () => {
     test("computes minimum of 1D array", () => {
       const x = np.array([3, 1, 4, 2]);
@@ -2076,6 +2199,67 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.dsplit()", () => {
+    test("splits a 3D array along the depth axis", () => {
+      const x = np.arange(16).reshape([2, 2, 4]);
+      const [a, b] = np.dsplit(x, 2);
+      expect(a.js()).toEqual([
+        [
+          [0, 1],
+          [4, 5],
+        ],
+        [
+          [8, 9],
+          [12, 13],
+        ],
+      ]);
+      expect(b.js()).toEqual([
+        [
+          [2, 3],
+          [6, 7],
+        ],
+        [
+          [10, 11],
+          [14, 15],
+        ],
+      ]);
+    });
+
+    test("supports explicit split indices", () => {
+      const x = np.arange(8).reshape([1, 2, 4]);
+      const [a, b, c] = np.dsplit(x, [1, 3]);
+      expect(a.js()).toEqual([[[0], [4]]]);
+      expect(b.js()).toEqual([
+        [
+          [1, 2],
+          [5, 6],
+        ],
+      ]);
+      expect(c.js()).toEqual([[[3], [7]]]);
+    });
+
+    test("throws on arrays with fewer than 3 dimensions", () => {
+      const x = np.arange(6).reshape([2, 3]);
+      expect(() => np.dsplit(x, 3)).toThrow(
+        "dsplit only works on arrays of 3 or more dimensions",
+      );
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => {
+        const [a, b] = np.dsplit(x, 2);
+        return np.concatenate([b, a], 2);
+      });
+      const y = f(np.arange(8).reshape([1, 2, 4]));
+      expect(y.js()).toEqual([
+        [
+          [2, 3, 0, 1],
+          [6, 7, 4, 5],
+        ],
+      ]);
+    });
+  });
+
   suite("jax.numpy.concatenate()", () => {
     // This suite also handles stack, hstack, vstack, dstack, etc.
 
@@ -2357,6 +2541,34 @@ suite.each(devices)("device:%s", (device) => {
         );
       });
     }
+  });
+
+  suite("jax.numpy.blackman()", () => {
+    test("blackman(5) matches reference values", () => {
+      const expected = [0, 0.34, 1, 0.34, 0];
+      expect(np.blackman(5).js()).toBeAllclose(expected, { atol: 1e-6 });
+    });
+
+    test("blackman(10) matches reference values", () => {
+      const expected = [
+        -1.38777878e-17, 5.08696327e-2, 2.58000502e-1, 6.3e-1, 9.51129866e-1,
+        9.51129866e-1, 6.3e-1, 2.58000502e-1, 5.08696327e-2, -1.38777878e-17,
+      ];
+      expect(np.blackman(10).js()).toBeAllclose(expected, { atol: 1e-6 });
+    });
+
+    test("blackman(1) returns [1]", () => {
+      expect(np.blackman(1).js()).toEqual([1]);
+    });
+
+    test("blackman(0) returns an empty array", () => {
+      expect(np.blackman(0).js()).toEqual([]);
+    });
+
+    test("rejects invalid window sizes", () => {
+      expect(() => np.blackman(-1)).toThrow(/non-negative integer/);
+      expect(() => np.blackman(0.5)).toThrow(/non-negative integer/);
+    });
   });
 
   suite("jax.numpy.atan()", () => {
