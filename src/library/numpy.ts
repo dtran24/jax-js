@@ -2402,8 +2402,6 @@ export function isin(
   element = fudgeArray(element);
   const outShape = element.shape;
   if (iprod(outShape) === 0) {
-    // Reducing over an axis of a zero-size array is not supported, so handle
-    // this case separately.
     fudgeArray(testElements).dispose();
     return astype(element, bool);
   }
