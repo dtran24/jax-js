@@ -1402,6 +1402,13 @@ suite.each(devices)("device:%s", (device) => {
       expect(col.js()).toEqual([[0, 1, 2]]);
     });
 
+    test("supports a dynamic sparse option", () => {
+      const makeIndices = (sparse: boolean) =>
+        np.indices([2, 3], { sparse });
+      expect(Array.isArray(makeIndices(false))).toBe(false);
+      expect(Array.isArray(makeIndices(true))).toBe(true);
+    });
+
     test("supports dtype option", () => {
       const grid = np.indices([2, 2], { dtype: np.float32 });
       expect(grid.dtype).toBe(np.float32);

@@ -1882,6 +1882,10 @@ export function indices(
 ): Array[];
 export function indices(
   dimensions: number[],
+  opts: DTypeAndDevice & { sparse: boolean },
+): Array | Array[];
+export function indices(
+  dimensions: number[],
   { dtype, device, sparse }: DTypeAndDevice & { sparse?: boolean } = {},
 ): Array | Array[] {
   dtype = dtype ?? int32;
