@@ -1688,6 +1688,30 @@ export function vander(
 }
 
 /**
+ * Return the sum of two polynomials.
+ *
+ * Both inputs are 1D arrays of polynomial coefficients, ordered from highest
+ * degree to the constant term. The shorter input is padded with leading zeros,
+ * so the result has length `max(a1.length, a2.length)`.
+ */
+export function polyadd(a1: ArrayLike, a2: ArrayLike): Array {
+  a1 = fudgeArray(a1);
+  a2 = fudgeArray(a2);
+  if (a1.ndim !== 1 || a2.ndim !== 1) {
+    const [ndim1, ndim2] = [a1.ndim, a2.ndim];
+    a1.dispose();
+    a2.dispose();
+    throw new Error(
+      `polyadd: both inputs must be 1D arrays, got ${ndim1}D and ${ndim2}D`,
+    );
+  }
+  const diff = a1.shape[0] - a2.shape[0];
+  if (diff > 0) a2 = pad(a2, [[diff, 0]]);
+  else if (diff < 0) a1 = pad(a1, [[-diff, 0]]);
+  return add(a1, a2);
+}
+
+/**
  * @function Compute the cross product of two arrays.
  *
  * Supports 2D (scalar result) and 3D cross products, with optional axis

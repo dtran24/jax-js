@@ -365,7 +365,7 @@ Most operations behave the same way as they do in JAX.
 | `piecewise`           | 🔴      | `lax.switch` control flow               |
 | `place`               | 🔴      |                                         |
 | `poly`                | 🔴      |                                         |
-| `polyadd`             | 🟠      |                                         |
+| `polyadd`             | 🟢      |                                         |
 | `polyder`             | 🟠      |                                         |
 | `polydiv`             | 🔴      |                                         |
 | `polyfit`             | 🔴      |                                         |

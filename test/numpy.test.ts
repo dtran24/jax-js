@@ -2217,6 +2217,54 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.polyadd()", () => {
+    test("adds polynomials of equal length", () => {
+      const a1 = np.array([1, 2, 3]);
+      const a2 = np.array([4, 5, 6]);
+      expect(np.polyadd(a1, a2).js()).toEqual([5, 7, 9]);
+    });
+
+    test("pads the shorter polynomial with leading zeros", () => {
+      const a1 = np.array([1, 2, 3, 4]);
+      const a2 = np.array([10, 20]);
+      expect(np.polyadd(a1.ref, a2.ref).js()).toEqual([1, 2, 13, 24]);
+      expect(np.polyadd(a2, a1).js()).toEqual([1, 2, 13, 24]);
+    });
+
+    test("supports empty coefficient arrays", () => {
+      const a1 = np.array([1, 2]);
+      const a2 = np.zeros([0]);
+      expect(np.polyadd(a1, a2).js()).toEqual([1, 2]);
+    });
+
+    test("promotes dtypes", () => {
+      const a1 = np.array([1, 2, 3]);
+      const a2 = np.array([0.5, 1.5]);
+      const y = np.polyadd(a1, a2);
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([1, 2.5, 4.5]);
+    });
+
+    test("rejects non-1D inputs", () => {
+      expect(() => np.polyadd(np.ones([2, 2]), np.ones([2]))).toThrow(
+        "polyadd: both inputs must be 1D",
+      );
+    });
+
+    test("works inside jit and grad", () => {
+      const f = jit((a: np.Array, b: np.Array) => np.polyadd(a, b));
+      expect(f(np.array([1, 2, 3]), np.array([4, 5])).js()).toEqual([1, 6, 8]);
+
+      const g = (a: np.Array) =>
+        np
+          .polyadd(a, np.array([1, 1, 1, 1]))
+          .mul(np.array([1, 2, 3, 4]))
+          .sum();
+      const da = grad(g)(np.array([1, 2], { dtype: np.float32 }));
+      expect(da.js()).toEqual([3, 4]);
+    });
+  });
+
   suite("jax.numpy.argmax()", () => {
     test("finds maximum of logits", () => {
       const x = np.argmax(np.array([0.1, 0.2, 0.3, 0.2]));
