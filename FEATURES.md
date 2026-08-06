@@ -265,7 +265,7 @@ Most operations behave the same way as they do in JAX.
 | `histogram_bin_edges` | 🔴      |                                         |
 | `histogram2d`         | 🔴      |                                         |
 | `histogramdd`         | 🔴      |                                         |
-| `hsplit`              | 🟠      | `split` is supported                    |
+| `hsplit`              | 🟢      |                                         |
 | `hstack`              | 🟢      |                                         |
 | `hypot`               | 🟡      | implemented as `sqrt(x^2 + y^2)`        |
 | `i0`                  | 🔴      | transcendental                          |

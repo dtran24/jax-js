@@ -2525,6 +2525,76 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.hsplit()", () => {
+    test("splits a 2D array along columns", () => {
+      const x = np.arange(12).reshape([3, 4]);
+      const [a, b] = np.hsplit(x, 2);
+      expect(a.js()).toEqual([
+        [0, 1],
+        [4, 5],
+        [8, 9],
+      ]);
+      expect(b.js()).toEqual([
+        [2, 3],
+        [6, 7],
+        [10, 11],
+      ]);
+    });
+
+    test("splits a 1D array along axis 0", () => {
+      const x = np.arange(6);
+      const [a, b, c] = np.hsplit(x, 3);
+      expect(a.js()).toEqual([0, 1]);
+      expect(b.js()).toEqual([2, 3]);
+      expect(c.js()).toEqual([4, 5]);
+    });
+
+    test("splits a 3D array along axis 1", () => {
+      const x = np.arange(8).reshape([2, 2, 2]);
+      const [a, b] = np.hsplit(x, 2);
+      expect(a.js()).toEqual([[[0, 1]], [[4, 5]]]);
+      expect(b.js()).toEqual([[[2, 3]], [[6, 7]]]);
+    });
+
+    test("supports explicit split indices", () => {
+      const x = np.arange(12).reshape([2, 6]);
+      const [a, b, c] = np.hsplit(x, [1, 4]);
+      expect(a.js()).toEqual([[0], [6]]);
+      expect(b.js()).toEqual([
+        [1, 2, 3],
+        [7, 8, 9],
+      ]);
+      expect(c.js()).toEqual([
+        [4, 5],
+        [10, 11],
+      ]);
+    });
+
+    test("throws on uneven split", () => {
+      const x = np.arange(10).reshape([2, 5]);
+      expect(() => np.hsplit(x, 2)).toThrow(Error);
+    });
+
+    test("throws on scalar input", () => {
+      const x = np.array(1);
+      expect(() => np.hsplit(x, 1)).toThrow(
+        "hsplit only works on arrays of 1 or more dimensions",
+      );
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => {
+        const [a, b] = np.hsplit(x, 2);
+        return a.add(b);
+      });
+      const x = np.arange(8).reshape([2, 4]);
+      expect(f(x).js()).toEqual([
+        [2, 4],
+        [10, 12],
+      ]);
+    });
+  });
+
   suite("jax.numpy.concatenate()", () => {
     // This suite also handles stack, hstack, vstack, dstack, etc.
 

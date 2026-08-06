@@ -673,6 +673,23 @@ export function dsplit(
   return split(a, indicesOrSections, 2);
 }
 
+/**
+ * Split an array into multiple sub-arrays horizontally (column-wise).
+ *
+ * Equivalent to `split()` along axis 1 for arrays of rank 2 or higher, or
+ * along axis 0 for rank-1 arrays.
+ */
+export function hsplit(
+  a: ArrayLike,
+  indicesOrSections: number | number[],
+): Array[] {
+  a = fudgeArray(a);
+  if (a.ndim === 0) {
+    throw new Error("hsplit only works on arrays of 1 or more dimensions");
+  }
+  return split(a, indicesOrSections, a.ndim > 1 ? 1 : 0);
+}
+
 function splitBySizes(a: Array, sizes: number[], axis: number): Array[] {
   // Split in groups of up to 8 outputs, as the transpose rule turns into a
   // Concatenate primitive that has limited input arguments.
