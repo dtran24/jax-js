@@ -654,6 +654,12 @@ suite.each(devices)("device:%s", (device) => {
       expect(ar[49]).toBeCloseTo(10, 5);
     });
 
+    test("supports integer output dtype", () => {
+      const x = np.geomspace(1, 16, 5, true, { dtype: np.int32 });
+      expect(x.dtype).toBe(np.int32);
+      expect(x.js()).toEqual([1, 2, 4, 8, 16]);
+    });
+
     test("throws on zero or mixed-sign endpoints", () => {
       expect(() => np.geomspace(0, 10, 5)).toThrow(RangeError);
       expect(() => np.geomspace(1, 0, 5)).toThrow(RangeError);

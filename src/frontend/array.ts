@@ -9,6 +9,7 @@ import {
   DType,
   dtypedArray,
   dtypedJsArray,
+  isFloatDtype,
   Kernel,
   Reduction,
 } from "../alu";
@@ -1767,6 +1768,8 @@ export function geomspace(
       `geomspace: start (${start}) and stop (${stop}) must be nonzero and have the same sign`,
     );
   }
+  dtype ??= DType.Float32;
+  const computationDtype = isFloatDtype(dtype) ? dtype : DType.Float32;
   const sign = Math.sign(start);
   const y = logspace(
     Math.log10(Math.abs(start)),
@@ -1774,9 +1777,10 @@ export function geomspace(
     num,
     endpoint,
     10,
-    { dtype, device },
+    { dtype: computationDtype, device },
   );
-  return sign < 0 ? (coreMul(y, -1) as Array) : y;
+  const result = sign < 0 ? (coreMul(y, -1) as Array) : y;
+  return result.dtype === dtype ? result : result.astype(dtype);
 }
 
 export function aluCompare(a: AluExp, b: AluExp, op: CompareOp): AluExp {
