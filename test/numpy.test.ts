@@ -2238,9 +2238,49 @@ suite.each(devices)("device:%s", (device) => {
       expect(y.js()).toEqual([-1, -2]);
     });
 
-    test("rejects non-vector inputs", () => {
-      expect(() => np.polysub(np.ones([2, 2]), np.ones([2]))).toThrow(
-        "polysub: both inputs must be 1D arrays, got 2D and 1D",
+    test("supports batched coefficient arrays", () => {
+      const y = np.polysub(
+        np.array([[2, 3, 1]]),
+        np.array([
+          [5, 7, 3],
+          [8, 2, 6],
+        ]),
+      );
+      expect(y.js()).toEqual([
+        [-5, -7, -3],
+        [-6, 1, -5],
+      ]);
+    });
+
+    test("broadcasts trailing dimensions", () => {
+      const y = np.polysub(
+        np.array([
+          [5, 7, 9],
+          [8, 6, 4],
+        ]),
+        np.array([2]),
+      );
+      expect(y.js()).toEqual([
+        [5, 7, 9],
+        [6, 4, 2],
+      ]);
+    });
+
+    test("rejects broadcasting into fewer dimensions", () => {
+      expect(() =>
+        np.polysub(
+          np.array([1, 3, 5]),
+          np.array([
+            [5, 7, 9],
+            [8, 6, 4],
+          ]),
+        ),
+      ).toThrow("target shape [2] has fewer dimensions than input array: 2");
+    });
+
+    test("rejects scalar inputs", () => {
+      expect(() => np.polysub(np.array(1), np.ones([2]))).toThrow(
+        "polysub: both inputs must be at least 1D, got 0D and 1D",
       );
     });
 
