@@ -609,6 +609,7 @@ export function diff(
     a.dispose();
     throw new Error(`diff: order must be a non-negative integer, got ${n}`);
   }
+  if (n === 0) return a;
   if (a.ndim === 0) {
     a.dispose();
     throw new Error("diff: input must be at least one-dimensional");

@@ -185,9 +185,11 @@ suite.each(devices)("device:%s", (device) => {
       expect(np.diff(x, 3).js()).toEqual([0, -11]);
     });
 
-    test("returns the array unchanged for n=0", () => {
+    test("returns the array unchanged for n=0, ignoring edge values", () => {
       const x = np.array([1, 5, 2]);
-      expect(np.diff(x, 0).js()).toEqual([1, 5, 2]);
+      expect(np.diff(x, 0, -1, { prepend: 0, append: 10 }).js()).toEqual([
+        1, 5, 2,
+      ]);
     });
 
     test("returns an empty array when n exceeds the axis size", () => {
