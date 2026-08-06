@@ -1638,6 +1638,18 @@ suite.each(devices)("device:%s", (device) => {
       expect(np.unwrap(np.array([0, 3.5]), 4).js()).toBeAllclose([0, 3.5]);
     });
 
+    test("uses the dtype-rounded period for the default discont", () => {
+      // The period rounds to infinity in float32, so its half-period does too.
+      // The finite jump must therefore be left unchanged.
+      const result = np.unwrap(
+        np.array([0, 3e38], { dtype: np.float32 }),
+        null,
+        -1,
+        3.5e38,
+      );
+      expect(result.js()).toEqual([0, Math.fround(3e38)]);
+    });
+
     test("operates along the given axis", () => {
       const x = np.array([
         [0, 2 * Math.PI + 0.1, 4 * Math.PI + 0.2],

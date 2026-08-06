@@ -2244,8 +2244,8 @@ export function unwrap(
         ? Math.f16round
         : Math.fround;
   const T = toDtype(period);
-  const interval = toDtype(period / 2);
-  const disc = toDtype(discont ?? period / 2);
+  const interval = toDtype(T / 2);
+  const disc = toDtype(discont ?? T / 2);
 
   const skip = rep<[]>(axis, []);
   const head = x.ref.slice(...skip, [0, 1]); // p[0:1]
