@@ -33,6 +33,11 @@ suite.each(devices)("device:%s", (device) => {
     expect(a.js()).toEqual([1.5, 2.5, 3.5]);
   });
 
+  test("signbit() distinguishes f16 signed zero", () => {
+    const x = np.array([-1.5, -0, 0, 1.5], { dtype: np.float16 });
+    expect(np.signbit(x).js()).toEqual([true, true, false, false]);
+  });
+
   test("jit of f16 calculation", () => {
     const f = jit((x: np.Array) => np.sum(x.ref.mul(x)));
     expect(f(np.arange(10).astype(np.float16))).toBeAllclose(285);
