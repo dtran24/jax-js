@@ -207,6 +207,56 @@ export function matrixPower(a: ArrayLike, n: number): Array {
   return result!;
 }
 
+/**
+ * Compute the rank of a matrix, i.e., its number of nonzero singular values.
+ *
+ * The rank is found by counting the singular values that are greater than the
+ * cutoff `rtol * s_max`, where `s_max` is the largest singular value. If `a`
+ * has fewer than 2 dimensions, this returns 1 if any element is nonzero, and
+ * 0 otherwise.
+ *
+ * If `rtol` is not given, it defaults to `max(M, N) * sqrt(eps)`, where `eps`
+ * is the machine epsilon of the dtype. This default is larger than JAX's
+ * `max(M, N) * eps` because singular values are currently computed via a
+ * symmetric eigensolver on the Gram matrix, which is only accurate to about
+ * `sqrt(eps) * s_max` for the smallest singular values. With `hermitian`, the
+ * eigenvalues are computed directly instead, so the default is JAX's
+ * `max(M, N) * eps`.
+ *
+ * @param a - Input matrix of shape `(..., M, N)`.
+ * @param rtol - Relative tolerance, a scalar or array of shape `(...)`.
+ * @param hermitian - If true, `a` is assumed to be symmetric, and a cheaper
+ *   eigenvalue routine is used instead of the SVD.
+ * @returns The rank of each matrix, as an `int32` array of shape `(...)`.
+ */
+export function matrixRank(
+  a: ArrayLike,
+  { rtol, hermitian = false }: { rtol?: ArrayLike; hermitian?: boolean } = {},
+): Array {
+  a = fudgeArray(a);
+  if (a.ndim < 2) {
+    if (rtol instanceof Array) rtol.dispose(); // rtol is ignored for vectors
+    return np.any(a.notEqual(0)).astype(np.int32);
+  }
+  const maxDim = Math.max(...a.shape.slice(-2));
+  let s: Array;
+  if (hermitian) {
+    checkSquare("matrixRank", a.shape);
+    s = np.abs(eigvalsh(a));
+  } else {
+    s = svdvals(a);
+  }
+  const eps = np.finfo(s.dtype).eps;
+  const cutoff = np
+    .max(s.ref, -1, { keepdims: true })
+    .mul(
+      rtol === undefined
+        ? maxDim * (hermitian ? eps : Math.sqrt(eps))
+        : np.expandDims(rtol, -1),
+    );
+  return np.sum(np.greater(s, cutoff).astype(np.int32), -1);
+}
+
 export { matrixTranspose } from "./numpy";
 
 /**

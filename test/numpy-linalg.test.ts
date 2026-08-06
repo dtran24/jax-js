@@ -3,6 +3,7 @@ import {
   Device,
   grad,
   init,
+  jit,
   jvp,
   numpy as np,
   random,
@@ -306,6 +307,172 @@ suite.each(devicesWithLinalg)("device:%s", (device) => {
       const result = np.linalg.matrixPower(a, 0);
       expect(result.dtype).toBe(dtype);
       expect(result).toBeAllclose(np.eye(2), { rtol: 0, atol: 1e-3 });
+    });
+  });
+
+  suite("numpy.linalg.matrixRank()", () => {
+    test("computes rank of full-rank matrices", () => {
+      const a = np.array([
+        [4.0, 7.0],
+        [2.0, 6.0],
+      ]);
+      const result = np.linalg.matrixRank(a);
+      expect(result.dtype).toBe(np.int32);
+      expect(result.js()).toEqual(2);
+    });
+
+    test("computes rank of rank-deficient matrices", () => {
+      const a = np.array([
+        [1.0, 2.0],
+        [2.0, 4.0],
+      ]);
+      expect(np.linalg.matrixRank(a).js()).toEqual(1);
+
+      const b = np.array([
+        [1.0, 2.0, 3.0],
+        [4.0, 5.0, 6.0],
+        [7.0, 8.0, 9.0],
+      ]);
+      expect(np.linalg.matrixRank(b).js()).toEqual(2);
+
+      expect(np.linalg.matrixRank(np.ones([4, 4])).js()).toEqual(1);
+      expect(np.linalg.matrixRank(np.zeros([3, 3])).js()).toEqual(0);
+    });
+
+    test("computes rank of rectangular matrices", () => {
+      const tall = np.array([
+        [1.0, 2.0],
+        [3.0, 4.0],
+        [5.0, 6.0],
+      ]);
+      expect(np.linalg.matrixRank(tall).js()).toEqual(2);
+
+      const wide = np.array([
+        [1.0, 2.0, 3.0],
+        [2.0, 4.0, 6.0],
+      ]);
+      expect(np.linalg.matrixRank(wide).js()).toEqual(1);
+    });
+
+    test("computes rank of a low-rank product", () => {
+      const key = random.key(42);
+      const [k1, k2] = random.split(key);
+      const b = random.normal(k1, [8, 3]);
+      const c = random.normal(k2, [3, 8]);
+      expect(np.linalg.matrixRank(np.matmul(b, c)).js()).toEqual(3);
+    });
+
+    test("supports batched matrices", () => {
+      const a = np.array([
+        [
+          [1.0, 0.0],
+          [0.0, 1.0],
+        ],
+        [
+          [1.0, 2.0],
+          [2.0, 4.0],
+        ],
+        [
+          [0.0, 0.0],
+          [0.0, 0.0],
+        ],
+      ]);
+      expect(np.linalg.matrixRank(a).js()).toEqual([2, 1, 0]);
+    });
+
+    test("handles inputs with fewer than 2 dimensions", () => {
+      const result = np.linalg.matrixRank(np.array([1.0, 0.0, 2.0]));
+      expect(result.dtype).toBe(np.int32);
+      expect(result.js()).toEqual(1);
+      expect(np.linalg.matrixRank(np.array([0.0, 0.0])).js()).toEqual(0);
+      expect(np.linalg.matrixRank(5.0).js()).toEqual(1);
+      expect(np.linalg.matrixRank(0.0).js()).toEqual(0);
+    });
+
+    test("accepts a custom relative tolerance", () => {
+      const a = np.array([
+        [4.0, 0.0],
+        [0.0, 3.0],
+      ]);
+      // Cutoff is rtol * s_max = 0.9 * 4 = 3.6, so only s = 4 counts.
+      expect(np.linalg.matrixRank(a.ref, { rtol: 0.9 }).js()).toEqual(1);
+      expect(np.linalg.matrixRank(a, { rtol: 1e-7 }).js()).toEqual(2);
+    });
+
+    test("accepts a batched rtol array", () => {
+      const a = np.array([
+        [
+          [4.0, 0.0],
+          [0.0, 3.0],
+        ],
+        [
+          [4.0, 0.0],
+          [0.0, 3.0],
+        ],
+      ]);
+      // Per-matrix cutoffs: 0.9 * 4 = 3.6 zeroes out s = 3, while 1e-7 * 4
+      // keeps both singular values.
+      const rtol = np.array([0.9, 1e-7]);
+      expect(np.linalg.matrixRank(a, { rtol }).js()).toEqual([1, 2]);
+    });
+
+    test("default tolerance respects dtype precision", () => {
+      // In float32, the cutoff 2 * sqrt(eps) * s_max is about 6.9e-4, which
+      // rounds a genuine singular value of 1e-5 down to zero.
+      const a = np.array([
+        [1.0, 0.0],
+        [0.0, 1e-5],
+      ]);
+      expect(np.linalg.matrixRank(a).js()).toEqual(1);
+      if (device !== "webgpu") {
+        // In float64, the cutoff is about 3e-8, well below 1e-5.
+        const b = np.array(
+          [
+            [1.0, 0.0],
+            [0.0, 1e-5],
+          ],
+          { dtype: np.float64 },
+        );
+        expect(np.linalg.matrixRank(b).js()).toEqual(2);
+      }
+    });
+
+    test("supports the hermitian option", () => {
+      const a = np.array([
+        [0.0, 1.0],
+        [1.0, 0.0],
+      ]);
+      // Eigenvalues are -1 and 1, so both singular values are 1.
+      expect(np.linalg.matrixRank(a, { hermitian: true }).js()).toEqual(2);
+
+      const b = np.array([
+        [1.0, 2.0],
+        [2.0, 4.0],
+      ]);
+      expect(np.linalg.matrixRank(b, { hermitian: true }).js()).toEqual(1);
+
+      const rect = np.array([[1.0, 2.0, 3.0]]);
+      expect(() => np.linalg.matrixRank(rect, { hermitian: true })).toThrow();
+    });
+
+    test("hermitian default tolerance is eps-based", () => {
+      // Eigenvalues are computed directly here (not via the Gram matrix), so
+      // the default cutoff is 3 * eps * s_max, about 3.6e-7 in float32.
+      const a = np.diag(np.array([1.0, 1.0, 1e-5]));
+      expect(np.linalg.matrixRank(a.ref, { hermitian: true }).js()).toEqual(3);
+      // The SVD path uses the coarser sqrt(eps) cutoff, which zeroes 1e-5.
+      expect(np.linalg.matrixRank(a).js()).toEqual(2);
+    });
+
+    test("works inside jit", () => {
+      const rank = jit((x: np.Array) => np.linalg.matrixRank(x));
+      const result = rank(
+        np.array([
+          [1.0, 2.0],
+          [2.0, 4.0],
+        ]),
+      );
+      expect(result.js()).toEqual(1);
     });
   });
 

@@ -523,7 +523,7 @@ missing some other building blocks like QR decomposition.
 | `matmul`           | 🟢      |                                         |
 | `matrix_norm`      | 🟡      | nuc, -2/2 not supported (need SVD)      |
 | `matrix_power`     | 🟢      |                                         |
-| `matrix_rank`      | 🔴      |                                         |
+| `matrix_rank`      | 🟡      | default rtol is `max(M, N) * sqrt(eps)` |
 | `matrix_transpose` | 🟢      |                                         |
 | `multi_dot`        | 🟢      |                                         |
 | `norm`             | 🟠      |                                         |

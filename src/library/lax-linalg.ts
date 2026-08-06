@@ -135,6 +135,7 @@ export function svd(
     const [v, values] = eigh(gram, { symmetrizeInput: false });
     const s = singularValues(values);
     if (!computeUv) {
+      a.dispose();
       v.dispose();
       return s;
     }
@@ -149,6 +150,7 @@ export function svd(
     const [u, values] = eigh(gram, { symmetrizeInput: false });
     const s = singularValues(values);
     if (!computeUv) {
+      a.dispose();
       u.dispose();
       return s;
     }
