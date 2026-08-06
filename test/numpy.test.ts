@@ -186,6 +186,16 @@ suite.each(devices)("device:%s", (device) => {
       expect(np.trapezoid(y, null, { dx: 2 }).js()).toEqual(8);
     });
 
+    test("broadcasts array-valued dx along a non-final axis", () => {
+      const y = np.array([
+        [1, 2],
+        [3, 4],
+        [5, 6],
+      ]);
+      const dx = np.array([[1], [2]]);
+      expect(np.trapezoid(y, null, { dx, axis: 0 }).js()).toEqual([10, 13]);
+    });
+
     test("uses 1-D sample points x", () => {
       const y = np.array([1, 2, 3]);
       const x = np.array([4, 6, 8]);
@@ -226,13 +236,35 @@ suite.each(devices)("device:%s", (device) => {
       expect(np.trapezoid(y, x).js()).toEqual([2, 8]);
     });
 
-    test("rejects x with mismatched dimensions", () => {
+    test("broadcasts lower-rank x against y", () => {
+      const y = np.ones([2, 2, 3]);
+      const x = np.array([
+        [0, 1, 3],
+        [0, 2, 4],
+      ]);
+      expect(np.trapezoid(y, x).js()).toEqual([
+        [3, 4],
+        [3, 4],
+      ]);
+    });
+
+    test("rejects incompatible x shapes", () => {
       const y = np.array([
         [1, 2, 3],
         [4, 5, 6],
       ]);
       const x = np.zeros([2, 3, 4]);
-      expect(() => np.trapezoid(y, x)).toThrow("trapezoid");
+      expect(() => np.trapezoid(y, x)).toThrow();
+    });
+
+    test("promotes integers before intermediate arithmetic", () => {
+      expect(
+        np.trapezoid(np.array([2_000_000_000, 2_000_000_000])),
+      ).toBeAllclose(2_000_000_000);
+
+      const y = np.array([1, 1]);
+      const x = np.array([-2_000_000_000, 2_000_000_000]);
+      expect(np.trapezoid(y, x)).toBeAllclose(4_000_000_000);
     });
 
     test("returns zero for a size-1 axis", () => {

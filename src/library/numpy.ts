@@ -592,9 +592,8 @@ export function cumulativeProd(
  * Integrate along the given axis using the composite trapezoidal rule.
  *
  * If `x` is provided, the integral is computed with respect to those sample
- * points; it can either be 1-dimensional or have the same number of dimensions
- * as `y`. Otherwise, the samples are assumed to be evenly spaced with step
- * `dx`.
+ * points. Otherwise, the samples are assumed to be evenly spaced with step
+ * `dx`. Both `x` and `dx` may be arrays that broadcast against `y`.
  *
  * @param y - Values to integrate.
  * @param x - Optional sample points corresponding to the `y` values.
@@ -604,28 +603,34 @@ export function cumulativeProd(
 export function trapezoid(
   y: ArrayLike,
   x: ArrayLike | null = null,
-  opts?: { dx?: number; axis?: number },
+  opts?: { dx?: ArrayLike; axis?: number },
 ): Array {
   y = fudgeArray(y);
-  const axis = checkAxis(opts?.axis ?? -1, y.ndim);
+  const requestedAxis = opts?.axis ?? -1;
+  const axis = checkAxis(requestedAxis, y.ndim);
   const sliceAxis = (a: Array, ax: number, s: [number] | Pair): Array =>
     a.slice(...rep(ax, [] as []), s);
 
   // Spacing between consecutive sample points, aligned to the last axis of y.
-  let dx: ArrayLike;
+  let dx: Array;
   if (x === null) {
-    dx = opts?.dx ?? 1;
+    if (!isFloatDtype(y.dtype)) y = y.astype(float32);
+    dx = fudgeArray(opts?.dx ?? 1);
+    if (dx.ndim > 0) {
+      if (dx.ndim < y.ndim) {
+        dx = dx.reshape(rep(y.ndim - dx.ndim, 1).concat(dx.shape));
+      }
+      dx = moveaxis(dx, requestedAxis, -1);
+    }
   } else {
     x = fudgeArray(x);
-    if (x.ndim !== 1 && x.ndim !== y.ndim) {
-      const message = `trapezoid: x must be 1-dimensional or have the same number of dimensions as y, got x.ndim=${x.ndim} and y.ndim=${y.ndim}`;
-      x.dispose();
-      y.dispose();
-      throw new Error(message);
-    }
-    const xAxis = x.ndim === 1 ? 0 : axis;
+    let dtype = promoteTypes(y.dtype, x.dtype);
+    if (!isFloatDtype(dtype)) dtype = float32;
+    if (y.dtype !== dtype) y = y.astype(dtype);
+    if (x.dtype !== dtype) x = x.astype(dtype);
+    const xAxis = x.ndim === 1 ? 0 : checkAxis(requestedAxis, x.ndim);
     const diff = sliceAxis(x.ref, xAxis, [1]).sub(sliceAxis(x, xAxis, [0, -1]));
-    dx = x.ndim === 1 ? diff : moveaxis(diff, axis, -1);
+    dx = x.ndim === 1 ? diff : moveaxis(diff, xAxis, -1);
   }
 
   y = moveaxis(y, axis, -1);
