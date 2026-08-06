@@ -2693,6 +2693,56 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.vsplit()", () => {
+    test("splits a 2D array into equal parts", () => {
+      const x = np.arange(12).reshape([4, 3]);
+      const [a, b] = np.vsplit(x, 2);
+      expect(a.js()).toEqual([
+        [0, 1, 2],
+        [3, 4, 5],
+      ]);
+      expect(b.js()).toEqual([
+        [6, 7, 8],
+        [9, 10, 11],
+      ]);
+    });
+
+    test("splits a 1D array along axis 0", () => {
+      const x = np.array([1, 2, 3, 4, 5, 6]);
+      const [a, b] = np.vsplit(x, 2);
+      expect(a.js()).toEqual([1, 2, 3]);
+      expect(b.js()).toEqual([4, 5, 6]);
+    });
+
+    test("splits at indices", () => {
+      const x = np.arange(12).reshape([4, 3]);
+      const [a, b, c] = np.vsplit(x, [1, 3]);
+      expect(a.js()).toEqual([[0, 1, 2]]);
+      expect(b.js()).toEqual([
+        [3, 4, 5],
+        [6, 7, 8],
+      ]);
+      expect(c.js()).toEqual([[9, 10, 11]]);
+    });
+
+    test("throws on uneven split", () => {
+      const x = np.arange(15).reshape([5, 3]);
+      expect(() => np.vsplit(x, 2)).toThrow(Error);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => {
+        const [a, b] = np.vsplit(x, 2);
+        return a.add(b);
+      });
+      const x = np.arange(8).reshape([4, 2]);
+      expect(f(x).js()).toEqual([
+        [4, 6],
+        [8, 10],
+      ]);
+    });
+  });
+
   suite("jax.numpy.concatenate()", () => {
     // This suite also handles stack, hstack, vstack, dstack, etc.
 

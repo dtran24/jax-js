@@ -465,7 +465,7 @@ Most operations behave the same way as they do in JAX.
 | `vecdot`              | 🟢      |                                         |
 | `vecmat`              | 🟢      |                                         |
 | `vectorize`           | 🟠      |                                         |
-| `vsplit`              | 🟠      | `split` is supported                    |
+| `vsplit`              | 🟢      |                                         |
 | `vstack`              | 🟢      |                                         |
 | `where`               | 🟢      |                                         |
 | `zeros`               | 🟢      |                                         |

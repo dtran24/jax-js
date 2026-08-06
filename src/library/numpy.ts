@@ -725,6 +725,18 @@ export function hsplit(
   return split(a, indicesOrSections, a.ndim > 1 ? 1 : 0);
 }
 
+/**
+ * Split an array into multiple sub-arrays vertically (row-wise).
+ *
+ * Equivalent to `split` with `axis=0`.
+ */
+export function vsplit(
+  a: ArrayLike,
+  indicesOrSections: number | number[],
+): Array[] {
+  return split(a, indicesOrSections, 0);
+}
+
 function splitBySizes(a: Array, sizes: number[], axis: number): Array[] {
   // Split in groups of up to 8 outputs, as the transpose rule turns into a
   // Concatenate primitive that has limited input arguments.
