@@ -173,6 +173,81 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.trapezoid()", () => {
+    test("integrates with default unit spacing", () => {
+      const y = np.array([1, 2, 3]);
+      const result = np.trapezoid(y);
+      expect(result.dtype).toBe(np.float32);
+      expect(result.js()).toEqual(4);
+    });
+
+    test("uses dx spacing", () => {
+      const y = np.array([1, 2, 3]);
+      expect(np.trapezoid(y, null, { dx: 2 }).js()).toEqual(8);
+    });
+
+    test("uses 1-D sample points x", () => {
+      const y = np.array([1, 2, 3]);
+      const x = np.array([4, 6, 8]);
+      expect(np.trapezoid(y.ref, x).js()).toEqual(8);
+
+      const xUneven = np.array([0, 1, 3]);
+      expect(np.trapezoid(y, xUneven)).toBeAllclose(6.5);
+    });
+
+    test("integrates along an axis of a 2-D array", () => {
+      const y = np.array([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]);
+      expect(np.trapezoid(y.ref, null, { axis: 1 }).js()).toEqual([4, 10]);
+      expect(np.trapezoid(y.ref, null, { axis: -1 }).js()).toEqual([4, 10]);
+      expect(np.trapezoid(y, null, { axis: 0 }).js()).toEqual([2.5, 3.5, 4.5]);
+    });
+
+    test("broadcasts 1-D x against a 2-D y", () => {
+      const y = np.array([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]);
+      const x = np.array([0, 1, 3]);
+      expect(np.trapezoid(y, x)).toBeAllclose([6.5, 15.5]);
+    });
+
+    test("accepts x with the same shape as y", () => {
+      const y = np.array([
+        [1, 1, 1],
+        [2, 2, 2],
+      ]);
+      const x = np.array([
+        [0, 1, 2],
+        [0, 2, 4],
+      ]);
+      expect(np.trapezoid(y, x).js()).toEqual([2, 8]);
+    });
+
+    test("rejects x with mismatched dimensions", () => {
+      const y = np.array([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]);
+      const x = np.zeros([2, 3, 4]);
+      expect(() => np.trapezoid(y, x)).toThrow("trapezoid");
+    });
+
+    test("returns zero for a size-1 axis", () => {
+      expect(np.trapezoid(np.array([5])).js()).toEqual(0);
+    });
+
+    test("works with jit and grad", () => {
+      const f = jit((y: np.Array) => np.trapezoid(y));
+      expect(f(np.array([1, 2, 3])).js()).toEqual(4);
+
+      const g = grad((y: np.Array) => np.trapezoid(y));
+      expect(g(np.array([1, 2, 3])).js()).toEqual([0.5, 1, 0.5]);
+    });
+  });
+
   suite("jax.numpy.cross()", () => {
     test("2D cross product", () => {
       const a = np.array([1, 2]);
