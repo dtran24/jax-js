@@ -281,6 +281,60 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.diagflat()", () => {
+    test("constructs diagonal from 1D array", () => {
+      const x = np.array([1, 2, 3]);
+      expect(np.diagflat(x).js()).toEqual([
+        [1, 0, 0],
+        [0, 2, 0],
+        [0, 0, 3],
+      ]);
+    });
+
+    test("flattens 2D input before constructing diagonal", () => {
+      const x = np.array([
+        [1, 2],
+        [3, 4],
+      ]);
+      expect(np.diagflat(x).js()).toEqual([
+        [1, 0, 0, 0],
+        [0, 2, 0, 0],
+        [0, 0, 3, 0],
+        [0, 0, 0, 4],
+      ]);
+    });
+
+    test("can construct off-diagonal", () => {
+      expect(np.diagflat(np.array([[1, 2]]), 1).js()).toEqual([
+        [0, 1, 0],
+        [0, 0, 2],
+        [0, 0, 0],
+      ]);
+      expect(np.diagflat(np.array([1, 2]), -1).js()).toEqual([
+        [0, 0, 0],
+        [1, 0, 0],
+        [0, 2, 0],
+      ]);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => np.diagflat(x, 1));
+      const result = f(
+        np.array([
+          [1, 2],
+          [3, 4],
+        ]),
+      );
+      expect(result.js()).toEqual([
+        [0, 1, 0, 0, 0],
+        [0, 0, 2, 0, 0],
+        [0, 0, 0, 3, 0],
+        [0, 0, 0, 0, 4],
+        [0, 0, 0, 0, 0],
+      ]);
+    });
+  });
+
   suite("jax.numpy.diagonal()", () => {
     test("diagonal defaults to first two axes", () => {
       const a = np.arange(4).reshape([2, 2]);

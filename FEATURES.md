@@ -206,7 +206,7 @@ Most operations behave the same way as they do in JAX.
 | `diag`                | 🟢      |                                         |
 | `diag_indices`        | 🟠      |                                         |
 | `diag_indices_from`   | 🟠      |                                         |
-| `diagflat`            | 🟠      |                                         |
+| `diagflat`            | 🟢      |                                         |
 | `diagonal`            | 🟢      |                                         |
 | `diff`                | 🟠      |                                         |
 | `digitize`            | 🟠      |                                         |

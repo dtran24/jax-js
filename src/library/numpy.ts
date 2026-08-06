@@ -1121,6 +1121,14 @@ export function diag(v: ArrayLike, k = 0): Array {
   }
 }
 
+/**
+ * Create a two-dimensional array with the flattened input on the k-th
+ * diagonal.
+ */
+export function diagflat(v: ArrayLike, k = 0): Array {
+  return diag(ravel(v), k);
+}
+
 /** Calculate the sum of the diagonal of an array along the given axes. */
 export function trace(a: ArrayLike, offset = 0, axis1 = 0, axis2 = 1): Array {
   return diagonal(a, offset, axis1, axis2).sum(-1);
