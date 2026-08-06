@@ -526,7 +526,7 @@ missing some other building blocks like QR decomposition.
 | `matrix_rank`      | 🔴      |                                         |
 | `matrix_transpose` | 🟢      |                                         |
 | `multi_dot`        | 🟢      |                                         |
-| `norm`             | 🟠      |                                         |
+| `norm`             | 🟢      |                                         |
 | `outer`            | 🟢      |                                         |
 | `pinv`             | 🔴      |                                         |
 | `qr`               | 🔴      |                                         |
