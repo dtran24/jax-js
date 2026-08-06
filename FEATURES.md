@@ -253,7 +253,7 @@ Most operations behave the same way as they do in JAX.
 | `full`                | 🟢      |                                         |
 | `full_like`           | 🟢      |                                         |
 | `gcd`                 | 🔴      |                                         |
-| `geomspace`           | 🟠      |                                         |
+| `geomspace`           | 🟢      |                                         |
 | `get_printoptions`    | ⚪️      | Python-specific                         |
 | `gradient`            | 🟠      |                                         |
 | `greater`             | 🟢      |                                         |

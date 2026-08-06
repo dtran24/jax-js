@@ -1739,6 +1739,44 @@ export function logspace(
   return coreExp(coreMul(y, logBase)) as Array;
 }
 
+/**
+ * Return numbers spaced evenly on a log scale (a geometric progression).
+ *
+ * This is similar to logspace(), but with endpoints specified directly. Each
+ * output sample is a constant multiple of the previous.
+ *
+ * Both `start` and `stop` must be nonzero and have the same sign.
+ *
+ * @param start - The starting value of the sequence.
+ * @param stop - The final value of the sequence, unless `endpoint` is false.
+ * @param num - Number of samples to generate. Default is 50.
+ * @param endpoint - If true, `stop` is the last sample. Otherwise, it is not included. Default is true.
+ * @returns Array of `num` samples, equally spaced on a log scale.
+ */
+export function geomspace(
+  start: number,
+  stop: number,
+  num: number = 50,
+  endpoint: boolean = true,
+  { dtype, device }: DTypeAndDevice = {},
+) {
+  if (start === 0 || stop === 0 || Math.sign(start) !== Math.sign(stop)) {
+    throw new RangeError(
+      `geomspace: start (${start}) and stop (${stop}) must be nonzero and have the same sign`,
+    );
+  }
+  const sign = Math.sign(start);
+  const y = logspace(
+    Math.log10(Math.abs(start)),
+    Math.log10(Math.abs(stop)),
+    num,
+    endpoint,
+    10,
+    { dtype, device },
+  );
+  return sign < 0 ? (coreMul(y, -1) as Array) : y;
+}
+
 export function aluCompare(a: AluExp, b: AluExp, op: CompareOp): AluExp {
   // Translate a `CompareOp` into an `AluExp` on two sub-expressions.
   switch (op) {
