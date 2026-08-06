@@ -199,8 +199,8 @@ suite("canCast", () => {
 
   test("same_kind allows casts within a kind", () => {
     expect(np.canCast(np.float64, np.float16, "same_kind")).toBe(true);
-    expect(np.canCast(np.int32, np.uint32, "same_kind")).toBe(true);
     expect(np.canCast(np.uint32, np.int32, "same_kind")).toBe(true);
+    expect(np.canCast(np.int32, np.uint32, "same_kind")).toBe(false);
     expect(np.canCast(np.int32, np.float16, "same_kind")).toBe(true);
     expect(np.canCast(np.float16, np.int32, "same_kind")).toBe(false);
     expect(np.canCast(np.int32, np.bool, "same_kind")).toBe(false);

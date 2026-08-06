@@ -24,10 +24,17 @@ const safeCasts: Readonly<Record<DType, readonly DType[]>> = {
   [DType.Float64]: [DType.Float64],
 };
 
-// Kind ordering used by "same_kind" casting: bool < integer < float. Signed
-// and unsigned integers count as the same kind, as in NumPy.
+// Kind ordering used by "same_kind" casting: bool < unsigned integer < signed
+// integer < float. NumPy allows same-kind casts upward through this ordering,
+// so uint32 can cast to int32 but not vice versa.
 const kindRank = (dtype: DType): number =>
-  dtype === DType.Bool ? 0 : isFloatDtype(dtype) ? 2 : 1;
+  dtype === DType.Bool
+    ? 0
+    : dtype === DType.Uint32
+      ? 1
+      : dtype === DType.Int32
+        ? 2
+        : 3;
 
 /**
  * Returns true if a cast between data types can occur according to the given
@@ -38,7 +45,7 @@ const kindRank = (dtype: DType): number =>
  * - `"no"` / `"equiv"`: the dtypes must be equal.
  * - `"safe"`: only casts that preserve values are allowed.
  * - `"same_kind"`: safe casts, plus casts within a kind (like float64 to
- *   float16 or int32 to uint32).
+ *   float16 or uint32 to int32).
  * - `"unsafe"`: any cast is allowed.
  */
 export function canCast(
