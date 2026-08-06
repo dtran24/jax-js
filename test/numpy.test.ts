@@ -2217,6 +2217,50 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.polysub()", () => {
+    test("subtracts polynomials of equal length", () => {
+      const y = np.polysub(np.array([1, 2, 3]), np.array([3, 2, 1]));
+      expect(y.js()).toEqual([-2, 0, 2]);
+    });
+
+    test("pads a shorter first polynomial with leading zeros", () => {
+      const y = np.polysub(np.array([1, 2]), np.array([9, 5, 4]));
+      expect(y.js()).toEqual([-9, -4, -2]);
+    });
+
+    test("pads a shorter second polynomial with leading zeros", () => {
+      const y = np.polysub(np.array([9, 5, 4]), np.array([1, 2]));
+      expect(y.js()).toEqual([9, 4, 2]);
+    });
+
+    test("supports empty polynomials", () => {
+      const y = np.polysub(np.array([]), np.array([1, 2]));
+      expect(y.js()).toEqual([-1, -2]);
+    });
+
+    test("rejects non-vector inputs", () => {
+      expect(() => np.polysub(np.ones([2, 2]), np.ones([2]))).toThrow(
+        "polysub: both inputs must be 1D arrays, got 2D and 1D",
+      );
+    });
+
+    test("works inside jit", () => {
+      const f = jit((a: np.Array, b: np.Array) => np.polysub(a, b));
+      const y = f(np.array([1, 2, 3]), np.array([5, 4]));
+      expect(y.js()).toEqual([1, -3, -1]);
+    });
+
+    test("supports grad", () => {
+      const f = (a: np.Array) =>
+        np
+          .polysub(a, np.array([3.0, 1.0]))
+          .mul(np.array([1.0, 2.0, 3.0]))
+          .sum();
+      const dx = grad(f)(np.array([1.0, 2.0, 3.0]));
+      expect(dx.js()).toEqual([1, 2, 3]);
+    });
+  });
+
   suite("jax.numpy.argmax()", () => {
     test("finds maximum of logits", () => {
       const x = np.argmax(np.array([0.1, 0.2, 0.3, 0.2]));

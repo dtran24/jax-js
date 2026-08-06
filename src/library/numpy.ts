@@ -1688,6 +1688,29 @@ export function vander(
 }
 
 /**
+ * Compute the difference of two polynomials.
+ *
+ * Both inputs are 1D arrays of polynomial coefficients, ordered from highest
+ * degree to lowest. The shorter input is padded with leading zeros, so the
+ * result has the length of the longer input.
+ */
+export function polysub(a1: ArrayLike, a2: ArrayLike): Array {
+  let x = fudgeArray(a1);
+  let y = fudgeArray(a2);
+  if (x.ndim !== 1 || y.ndim !== 1) {
+    const message = `polysub: both inputs must be 1D arrays, got ${x.ndim}D and ${y.ndim}D`;
+    x.dispose();
+    y.dispose();
+    throw new Error(message);
+  }
+  const n1 = x.shape[0];
+  const n2 = y.shape[0];
+  if (n1 < n2) x = pad(x, [[n2 - n1, 0]]);
+  else if (n2 < n1) y = pad(y, [[n1 - n2, 0]]);
+  return x.sub(y);
+}
+
+/**
  * @function Compute the cross product of two arrays.
  *
  * Supports 2D (scalar result) and 3D cross products, with optional axis
