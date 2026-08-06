@@ -437,6 +437,19 @@ suite.each(devicesWithLinalg)("device:%s", (device) => {
       }
     });
 
+    test("is invariant to finite rescaling", () => {
+      for (const scale of [1e-30, 9e18]) {
+        const a = np
+          .array([
+            [1.0, 2.0],
+            [2.0, 4.0],
+          ])
+          .mul(scale);
+        expect(np.linalg.matrixRank(a.ref).js()).toEqual(1);
+        expect(np.linalg.matrixRank(a, { hermitian: true }).js()).toEqual(1);
+      }
+    });
+
     test("supports the hermitian option", () => {
       const a = np.array([
         [0.0, 1.0],

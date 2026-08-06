@@ -239,9 +239,16 @@ export function matrixRank(
     return np.any(a.notEqual(0)).astype(np.int32);
   }
   const maxDim = Math.max(...a.shape.slice(-2));
+  if (hermitian) checkSquare("matrixRank", a.shape);
+
+  // Forming the Gram matrix in svdvals() squares the magnitude of the input,
+  // so normalize each matrix to avoid underflow or overflow. Rank and the
+  // relative cutoff are unchanged by nonzero scalar multiplication.
+  const scale = np.max(np.abs(a.ref), [-2, -1], { keepdims: true });
+  a = a.div(np.where(scale.ref.equal(0), 1, scale));
+
   let s: Array;
   if (hermitian) {
-    checkSquare("matrixRank", a.shape);
     s = np.abs(eigvalsh(a));
   } else {
     s = svdvals(a);
