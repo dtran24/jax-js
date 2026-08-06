@@ -739,6 +739,27 @@ export function stack(xs: ArrayLike[], axis: number = 0): Array {
 }
 
 /**
+ * Split an array into a sequence of arrays along the given axis.
+ *
+ * The `axis` parameter specifies the dimension of the input array to unstack
+ * along; it is removed from the shape of each output array. This is the
+ * inverse operation of `stack()`.
+ */
+export function unstack(x: ArrayLike, axis: number = 0): Array[] {
+  x = fudgeArray(x);
+  if (x.ndim === 0) {
+    throw new Error("unstack requires arrays with rank > 0");
+  }
+  axis = checkAxis(axis, x.ndim);
+  const size = x.shape[axis];
+  if (size === 0) {
+    x.dispose();
+    return [];
+  }
+  return split(x, size, axis).map((part) => squeeze(part, axis));
+}
+
+/**
  * Horizontally stack arrays. Inputs are promoted to rank at least 1, then
  * concatenated along axis 1 (if rank-2 or higher) or 0 (if rank-1).
  */

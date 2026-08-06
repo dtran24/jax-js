@@ -2076,6 +2076,57 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.unstack()", () => {
+    test("unstacks along the first axis by default", () => {
+      const x = np.arange(6).reshape([3, 2]);
+      const [a, b, c] = np.unstack(x);
+      expect(a.js()).toEqual([0, 1]);
+      expect(b.js()).toEqual([2, 3]);
+      expect(c.js()).toEqual([4, 5]);
+    });
+
+    test("unstacks along a negative axis", () => {
+      const x = np.arange(6).reshape([3, 2]);
+      const [a, b] = np.unstack(x, -1);
+      expect(a.js()).toEqual([0, 2, 4]);
+      expect(b.js()).toEqual([1, 3, 5]);
+    });
+
+    test("unstacks a 1D array into scalars", () => {
+      const x = np.array([5, 7, 9]);
+      const parts = np.unstack(x);
+      expect(parts.map((part) => part.shape)).toEqual([[], [], []]);
+      expect(parts.map((part) => part.js())).toEqual([5, 7, 9]);
+    });
+
+    test("is the inverse of stack", () => {
+      const x = np.arange(12).reshape([2, 3, 2]);
+      const y = np.stack(np.unstack(x.ref, 1), 1);
+      expect(y.js()).toEqual(x.js());
+    });
+
+    test("throws on scalar input", () => {
+      expect(() => np.unstack(5)).toThrow(Error);
+    });
+
+    test("returns an empty list for an empty axis", () => {
+      const x = np.zeros([0, 3]);
+      expect(np.unstack(x)).toEqual([]);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => {
+        const [a, b, c] = np.unstack(x);
+        return np.stack([c, b, a]);
+      });
+      expect(f(np.arange(6).reshape([3, 2])).js()).toEqual([
+        [4, 5],
+        [2, 3],
+        [0, 1],
+      ]);
+    });
+  });
+
   suite("jax.numpy.concatenate()", () => {
     // This suite also handles stack, hstack, vstack, dstack, etc.
 
