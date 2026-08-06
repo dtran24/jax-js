@@ -14,6 +14,7 @@ import {
   expm1,
   less,
   log,
+  log1p,
   max,
   maximum,
   negative,
@@ -355,6 +356,24 @@ export function logmeanexp(
   const n = axis.reduce((acc, a) => acc * x.shape[a], 1);
   return logsumexp(x, axis, opts).sub(Math.log(n));
 }
+
+/**
+ * @function
+ * Computes `log(1 - exp(-x))` element-wise, in a numerically stable way.
+ *
+ * This function is undefined for `x < 0`.
+ *
+ * Reference: Martin Mächler, "Accurately Computing log(1 - exp(-|a|))
+ * Assessed by the Rmpfr package", 2012.
+ * https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
+ */
+export const log1mexp = jit(function log1mexp(x: Array): Array {
+  return where(
+    x.ref.less(Math.LN2),
+    log(negative(expm1(negative(x.ref)))),
+    log1p(negative(exp(negative(x)))),
+  );
+});
 
 /**
  * Standardizes input to zero mean and unit variance.

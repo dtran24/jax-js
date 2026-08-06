@@ -661,7 +661,7 @@ would need substantial changes to work well in JavaScript.
 | `scaled_matmul`                 | 🟠      | for microscaling                                  |
 | `get_scaled_dot_general_config` | 🔴      |                                                   |
 | `scaled_dot_general`            | 🟠      | for microscaling                                  |
-| `log1mexp`                      | 🟠      |                                                   |
+| `log1mexp`                      | 🟢      |                                                   |
 
 ## Other `jax.*` modules
 

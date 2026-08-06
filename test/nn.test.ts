@@ -179,6 +179,34 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.nn.log1mexp()", () => {
+    test("computes log(1 - exp(-x)) on both sides of log(2)", () => {
+      const x = np.array([0.1, 0.5, 1, 2, 5, 10]);
+      const y = nn.log1mexp(x);
+      // Loose atol since Wasm loses some precision in log() near 1.
+      expect(y).toBeAllclose(
+        [
+          -2.35216846, -0.93275213, -0.45867515, -0.14541346, -0.00676075,
+          -0.0000454,
+        ],
+        { atol: 1e-4 },
+      );
+    });
+
+    test("log(2) is a fixed point", () => {
+      const y = nn.log1mexp(np.array(Math.LN2));
+      expect(y.js()).toBeCloseTo(-Math.LN2);
+    });
+
+    test("has correct gradient", () => {
+      // d/dx log(1 - exp(-x)) = 1 / expm1(x)
+      const x = np.array([0.5, 1, 2, 5]);
+      const gradFn = grad((x: np.Array) => nn.log1mexp(x).sum());
+      const gx = gradFn(x);
+      expect(gx).toBeAllclose([1.54149408, 0.58197671, 0.15651764, 0.00678365]);
+    });
+  });
+
   suite("jax.nn.standardize()", () => {
     test("standardizes over last axis by default", () => {
       const x = np.array([
