@@ -198,12 +198,24 @@ suite.each(devices)("device:%s", (device) => {
       expect(y.js()).toBeCloseTo(-Math.LN2);
     });
 
+    test("remains accurate for extreme inputs", () => {
+      const values = [1e-8, 1e-7, 1e-4, 0.1, 2, 10, 20, 50];
+      const expected = values.map((x) =>
+        x < Math.LN2 ? Math.log(-Math.expm1(-x)) : Math.log1p(-Math.exp(-x)),
+      );
+      expect(nn.log1mexp(np.array(values))).toBeAllclose(expected, {
+        rtol: 2e-5,
+        atol: 0,
+      });
+    });
+
     test("has correct gradient", () => {
       // d/dx log(1 - exp(-x)) = 1 / expm1(x)
-      const x = np.array([0.5, 1, 2, 5]);
+      const values = [0.05, 0.5, 1, 2, 5];
+      const x = np.array(values);
       const gradFn = grad((x: np.Array) => nn.log1mexp(x).sum());
       const gx = gradFn(x);
-      expect(gx).toBeAllclose([1.54149408, 0.58197671, 0.15651764, 0.00678365]);
+      expect(gx).toBeAllclose(values.map((x) => 1 / Math.expm1(x)));
     });
   });
 
