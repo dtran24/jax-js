@@ -1688,6 +1688,40 @@ export function vander(
 }
 
 /**
+ * Evaluate a polynomial at specific values.
+ *
+ * If `p` has length N, this returns the value
+ * `p[0]*x**(N-1) + p[1]*x**(N-2) + ... + p[N-2]*x + p[N-1]`, computed via
+ * Horner's scheme. Like in JAX, integer inputs are promoted to floating point.
+ *
+ * @param p - 1D array of polynomial coefficients, from highest degree to the
+ *   constant term.
+ * @param x - Values at which to evaluate the polynomial.
+ */
+export function polyval(p: ArrayLike, x: ArrayLike): Array {
+  p = fudgeArray(p);
+  x = fudgeArray(x);
+  if (p.ndim !== 1) {
+    const ndim = p.ndim;
+    p.dispose();
+    x.dispose();
+    throw new Error(`polyval: coefficients must be 1D, got ${ndim}D`);
+  }
+  if (!isFloatDtype(p.dtype) && !isFloatDtype(x.dtype)) {
+    p = p.astype(DType.Float32);
+    x = x.astype(DType.Float32);
+  }
+  const n = p.shape[0];
+  let y = zerosLike(x.ref, { dtype: promoteTypes(p.dtype, x.dtype) });
+  for (let i = 0; i < n; i++) {
+    y = y.mul(x.ref).add(p.ref.slice(i));
+  }
+  p.dispose();
+  x.dispose();
+  return y;
+}
+
+/**
  * @function Compute the cross product of two arrays.
  *
  * Supports 2D (scalar result) and 3D cross products, with optional axis

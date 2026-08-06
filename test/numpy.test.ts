@@ -2217,6 +2217,44 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.polyval()", () => {
+    test("evaluates a polynomial at scalar and array points", () => {
+      const p = np.array([3, 0, 1]); // 3x^2 + 1
+      expect(np.polyval(p.ref, np.array(5)).js()).toEqual(76);
+      expect(np.polyval(p, np.array([0, 1, 2]))).toBeAllclose([1, 4, 13]);
+    });
+
+    test("promotes integer inputs to float", () => {
+      const y = np.polyval(np.array([1, 2]), np.array([3, 4]));
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([5, 6]);
+    });
+
+    test("handles empty and constant coefficients", () => {
+      const y = np.polyval(np.zeros([0]), np.array([1.5, 2.5]));
+      expect(y.js()).toEqual([0, 0]);
+      const c = np.polyval(np.array([7]), np.ones([2, 2]));
+      expect(c.js()).toEqual([
+        [7, 7],
+        [7, 7],
+      ]);
+    });
+
+    test("supports grad and jit", () => {
+      const f = (x: np.Array) => np.polyval(np.array([3, 0, 1]), x);
+      const dx = grad(f)(np.array(2.0));
+      expect(dx.js()).toEqual(12); // d/dx (3x^2 + 1) = 6x
+      const y = jit(f)(np.array(3.0));
+      expect(y.js()).toEqual(28);
+    });
+
+    test("rejects non-vector coefficients", () => {
+      expect(() => np.polyval(np.ones([2, 2]), np.array(1))).toThrow(
+        "polyval: coefficients must be 1D",
+      );
+    });
+  });
+
   suite("jax.numpy.argmax()", () => {
     test("finds maximum of logits", () => {
       const x = np.argmax(np.array([0.1, 0.2, 0.3, 0.2]));
