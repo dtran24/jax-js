@@ -74,4 +74,13 @@ suite.each(devices)("device:%s", (device) => {
     const b: number = await a.ref.slice(1).sub(a.slice(0)).jsAsync();
     expect(b).toBeCloseTo(1e-15, 15);
   });
+
+  test("unwrap() matches numpy at a rounding-tie boundary", () => {
+    // The delta here is one ulp below -pi, and numpy's mod rounds it to the
+    // period itself, unwrapping the value to +pi rather than leaving it.
+    const x = np.array([0, -3.1415926535897936], { dtype: np.float64 });
+    const y = np.unwrap(x);
+    expect(y.dtype).toBe(np.float64);
+    expect(y.ref.dataSync()[1]).toBe(3.1415926535897927);
+  });
 });

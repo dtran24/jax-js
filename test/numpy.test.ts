@@ -1606,6 +1606,92 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.unwrap()", () => {
+    test("unwraps phase jumps larger than pi", () => {
+      // Mirrors the example from the numpy docs.
+      const phase = np.array([
+        0,
+        Math.PI / 4,
+        Math.PI / 2,
+        (3 * Math.PI) / 4 + Math.PI,
+        2 * Math.PI,
+      ]);
+      const result = np.unwrap(phase);
+      expect(result.js()).toBeAllclose(
+        [0, Math.PI / 4, Math.PI / 2, -Math.PI / 4, 0],
+        { atol: 1e-5 },
+      );
+    });
+
+    test("supports a custom period", () => {
+      const a = np.unwrap(np.array([0, 1, 2, -1, 0]), null, -1, 4);
+      expect(a.js()).toBeAllclose([0, 1, 2, 3, 4]);
+      const b = np.unwrap(np.array([2, 3, 4, 5, 2, 3, 4, 5]), null, -1, 4);
+      expect(b.js()).toBeAllclose([2, 3, 4, 5, 6, 7, 8, 9]);
+    });
+
+    test("larger discont leaves jumps intact", () => {
+      expect(np.unwrap(np.array([0, 3.5])).js()).toBeAllclose([
+        0,
+        3.5 - 2 * Math.PI,
+      ]);
+      expect(np.unwrap(np.array([0, 3.5]), 4).js()).toBeAllclose([0, 3.5]);
+    });
+
+    test("operates along the given axis", () => {
+      const x = np.array([
+        [0, 2 * Math.PI + 0.1, 4 * Math.PI + 0.2],
+        [0.5, 2 * Math.PI + 0.6, 4 * Math.PI + 0.7],
+      ]);
+      expect(np.unwrap(x.ref).js()).toBeAllclose(
+        [
+          [0, 0.1, 0.2],
+          [0.5, 0.6, 0.7],
+        ],
+        { atol: 1e-5 },
+      );
+      expect(np.unwrap(np.transpose(x), null, 0).js()).toBeAllclose(
+        [
+          [0, 0.5],
+          [0.1, 0.6],
+          [0.2, 0.7],
+        ],
+        { atol: 1e-5 },
+      );
+    });
+
+    test("handles deltas of exactly half the period", () => {
+      // A jump of exactly +pi is disambiguated to the positive complement, so
+      // a ramp in half-period steps is left unchanged, matching numpy.
+      const up = np.unwrap(np.array([0, Math.PI, 2 * Math.PI]));
+      expect(up.js()).toBeAllclose([0, Math.PI, 2 * Math.PI], { atol: 1e-5 });
+      const down = np.unwrap(np.array([0, -Math.PI, -2 * Math.PI]));
+      expect(down.js()).toBeAllclose([0, -Math.PI, -2 * Math.PI], {
+        atol: 1e-5,
+      });
+    });
+
+    test("promotes integers to float and handles short arrays", () => {
+      const x = np.array([0, 1, 2, -1, 0], { dtype: np.int32 });
+      const result = np.unwrap(x, null, -1, 4);
+      expect(result.dtype).toBe(np.float32);
+      expect(result.js()).toBeAllclose([0, 1, 2, 3, 4]);
+      expect(np.unwrap(np.array([1.5])).js()).toBeAllclose([1.5]);
+      expect(np.unwrap(np.zeros([0])).js()).toEqual([]);
+    });
+
+    test("works inside jit and grad", () => {
+      const f = jit((x: np.Array) => np.unwrap(x));
+      const result = f(np.array([0, Math.PI - 0.1, 2 * Math.PI + 0.5]));
+      expect(result.js()).toBeAllclose([0, Math.PI - 0.1, 0.5], { atol: 1e-5 });
+
+      // The phase correction is piecewise-constant, so the gradient of the
+      // sum is 1 for every element.
+      const g = grad((x: np.Array) => np.unwrap(x).sum());
+      expect(g(np.array([0, 3.5, 7])).js()).toEqual([1, 1, 1]);
+    });
+  });
+
   suite("jax.numpy.exp()", () => {
     test("computes element-wise exponential", () => {
       const x = np.array([-Infinity, 0, 1, 2, 3]);

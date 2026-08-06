@@ -2211,6 +2211,66 @@ export function rad2deg(x: ArrayLike): Array {
 export const degrees = rad2deg;
 
 /**
+ * Unwrap by taking the complement of large deltas with respect to the period.
+ *
+ * This unwraps a signal `p` by changing elements which have an absolute
+ * difference from their predecessor of more than `max(discont, period / 2)` to
+ * their `period`-complementary values.
+ *
+ * @param p - Input array.
+ * @param discont - Maximum discontinuity between values. Defaults to
+ * `period / 2`. Values below `period / 2` are treated as `period / 2`.
+ * @param axis - Axis along which unwrap will operate, default is the last axis.
+ * @param period - Size of the range over which the input wraps. Default is
+ * `2 * pi`.
+ */
+export function unwrap(
+  p: ArrayLike,
+  discont: number | null = null,
+  axis: number = -1,
+  period: number = 2 * pi,
+): Array {
+  let x = fudgeArray(p);
+  axis = checkAxis(axis, x.ndim);
+  if (!isFloatDtype(x.dtype)) x = astype(x, float32);
+  if (x.shape[axis] <= 1) return x;
+
+  // Round the scalar constants to the array's dtype, so that every backend
+  // agrees exactly on boundary cases like a delta of precisely `period / 2`.
+  const toDtype =
+    x.dtype === DType.Float64
+      ? (v: number) => v
+      : x.dtype === DType.Float16
+        ? Math.f16round
+        : Math.fround;
+  const T = toDtype(period);
+  const interval = toDtype(period / 2);
+  const disc = toDtype(discont ?? period / 2);
+
+  const skip = rep<[]>(axis, []);
+  const head = x.ref.slice(...skip, [0, 1]); // p[0:1]
+  const tail = x.ref.slice(...skip, [1]); // p[1:]
+  const dd = tail.ref.sub(x.slice(...skip, [0, -1])); // p[1:] - p[:-1]
+
+  // Compute `ddmod = mod(dd + interval, T) - interval` with Python mod
+  // semantics. The `Mod` primitive matches the sign of x like fmod, so mimic
+  // numpy by adding `T` when the remainder and divisor signs differ.
+  const r = core.mod(dd.ref.add(interval), T) as Array;
+  const pymod =
+    T >= 0
+      ? where(less(r.ref, 0), r.ref.add(T), r)
+      : where(greater(r.ref, 0), r.ref.add(T), r);
+  let ddmod = pymod.sub(interval);
+  ddmod = where(
+    logicalAnd(equal(ddmod.ref, -interval), greater(dd.ref, 0)),
+    interval,
+    ddmod,
+  );
+  const phCorrect = where(less(absolute(dd.ref), disc), 0, ddmod.sub(dd));
+  return concatenate([head, tail.add(cumsum(phCorrect, axis))], axis);
+}
+
+/**
  * @function
  * Computes first array raised to power of second array, element-wise.
  */
