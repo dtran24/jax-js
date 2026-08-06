@@ -394,7 +394,7 @@ Most operations behave the same way as they do in JAX.
 | `repeat`              | 🟢      |                                         |
 | `reshape`             | 🟢      |                                         |
 | `resize`              | 🟠      |                                         |
-| `result_type`         | 🟠      | see `promote_types`                     |
+| `result_type`         | 🟢      |                                         |
 | `right_shift`         | 🟢      |                                         |
 | `rint`                | 🟢      |                                         |
 | `roll`                | 🟢      |                                         |

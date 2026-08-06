@@ -315,6 +315,29 @@ export function astype(a: ArrayLike, dtype: DType): Array {
   return fudgeArray(a).astype(dtype);
 }
 
+/**
+ * Return the dtype resulting from applying type promotion rules to the
+ * arguments, which may be arrays, JS numbers or booleans, or dtypes.
+ *
+ * Weakly typed values (e.g., JS numbers) only affect the result when every
+ * argument is weakly typed, following the same rules as `promoteTypes()`.
+ * Does not consume array references.
+ */
+export function resultType(...args: (ArrayLike | DType)[]): DType {
+  if (args.length === 0)
+    throw new TypeError("resultType requires at least one argument");
+  const avals = args.map((x) => {
+    if (typeof x === "string") {
+      if (!Object.values(DType).includes(x))
+        throw new TypeError(`resultType: invalid dtype '${x}'`);
+      return new core.ShapedArray([], x, false);
+    }
+    const { dtype, weakType } = core.getAval(x);
+    return new core.ShapedArray([], dtype, weakType);
+  });
+  return avals.reduce((a, b) => core.promoteAvals(a, b)).dtype;
+}
+
 /** Sum of the elements of the array over a given axis, or axes. */
 export function sum(
   a: ArrayLike,
