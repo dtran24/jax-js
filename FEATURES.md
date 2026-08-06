@@ -208,7 +208,7 @@ Most operations behave the same way as they do in JAX.
 | `diag_indices_from`   | 🟠      |                                         |
 | `diagflat`            | 🟠      |                                         |
 | `diagonal`            | 🟢      |                                         |
-| `diff`                | 🟠      |                                         |
+| `diff`                | 🟢      |                                         |
 | `digitize`            | 🟠      |                                         |
 | `divide`              | 🟢      |                                         |
 | `divmod`              | 🟢      |                                         |
