@@ -113,6 +113,9 @@ suite("jax.numpy.isdtype()", () => {
     expect(() =>
       np.isdtype(np.float32, ["real floating", "foo" as np.DTypeKind]),
     ).toThrow(/unrecognized kind foo/);
+    expect(() => np.isdtype(np.float32, "constructor" as np.DTypeKind)).toThrow(
+      /unrecognized kind constructor/,
+    );
   });
 });
 

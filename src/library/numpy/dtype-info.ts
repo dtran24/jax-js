@@ -166,7 +166,7 @@ export function isdtype(
   const kinds = globalThis.Array.isArray(kind) ? kind : [kind];
   let result = false;
   for (const k of kinds as readonly DTypeKind[]) {
-    const members = dtypeKinds[k];
+    const members = Object.hasOwn(dtypeKinds, k) ? dtypeKinds[k] : undefined;
     if (members !== undefined) {
       result ||= members.includes(dtype);
     } else if (allDtypes.includes(k as DType)) {
