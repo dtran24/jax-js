@@ -2531,8 +2531,8 @@ suite.each(devices)("device:%s", (device) => {
       expect(actual).toBeAllclose(expected, { rtol: 1e-4, atol: 1e-4 });
     });
 
+    // The fused i0 graph exceeds WebGL shader compiler limits.
     if (device !== "webgl") {
-      // WebGL fails to compile the single fused shader for the full graph.
       test("works inside jit", () => {
         const f = jit((x: np.Array) => np.i0(x.mul(2)));
         expect(f(np.array([0.5, 5])).js()).toBeAllclose(
