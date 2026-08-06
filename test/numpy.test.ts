@@ -2224,10 +2224,22 @@ suite.each(devices)("device:%s", (device) => {
       expect(np.polyval(p, np.array([0, 1, 2]))).toBeAllclose([1, 4, 13]);
     });
 
-    test("promotes integer inputs to float", () => {
-      const y = np.polyval(np.array([1, 2]), np.array([3, 4]));
-      expect(y.dtype).toBe(np.float32);
+    test("preserves promoted input dtype", () => {
+      const y = np.polyval(
+        np.array([1, 2], { dtype: np.int32 }),
+        np.array([3, 4], { dtype: np.int32 }),
+      );
+      expect(y.dtype).toBe(np.int32);
       expect(y).toBeAllclose([5, 6]);
+      const scalar = np.polyval(np.array([2, 5, 1], { dtype: np.int32 }), 3);
+      expect(scalar.dtype).toBe(np.int32);
+      expect(scalar.js()).toEqual(34);
+      const mixed = np.polyval(
+        np.array([1, 2], { dtype: np.int32 }),
+        np.array([0.5, 1.5]),
+      );
+      expect(mixed.dtype).toBe(np.float32);
+      expect(mixed).toBeAllclose([2.5, 3.5]);
     });
 
     test("handles empty and constant coefficients", () => {
@@ -2240,6 +2252,22 @@ suite.each(devices)("device:%s", (device) => {
       ]);
     });
 
+    test("supports batched coefficients", () => {
+      const p = np.array([
+        [1, 2],
+        [0, 3],
+        [4, 5],
+      ]);
+      expect(np.polyval(p, np.array([2, 3]))).toBeAllclose([8, 32]);
+
+      const empty = np.polyval(np.zeros([0, 2, 1]), np.ones([3]));
+      expect(empty.shape).toEqual([2, 3]);
+      expect(empty.js()).toEqual([
+        [0, 0, 0],
+        [0, 0, 0],
+      ]);
+    });
+
     test("supports grad and jit", () => {
       const f = (x: np.Array) => np.polyval(np.array([3, 0, 1]), x);
       const dx = grad(f)(np.array(2.0));
@@ -2248,9 +2276,9 @@ suite.each(devices)("device:%s", (device) => {
       expect(y.js()).toEqual(28);
     });
 
-    test("rejects non-vector coefficients", () => {
-      expect(() => np.polyval(np.ones([2, 2]), np.array(1))).toThrow(
-        "polyval: coefficients must be 1D",
+    test("rejects scalar coefficients", () => {
+      expect(() => np.polyval(np.array(1), np.array(1))).toThrow(
+        "polyval: coefficients must have at least one dimension",
       );
     });
   });
