@@ -291,7 +291,7 @@ Most operations behave the same way as they do in JAX.
 | `isposinf`            | 🟢      |                                         |
 | `isreal`              | ⚪️      | complex numbers                         |
 | `isrealobj`           | ⚪️      | complex numbers                         |
-| `isscalar`            | 🟠      |                                         |
+| `isscalar`            | 🟢      |                                         |
 | `issubdtype`          | 🟠      |                                         |
 | `iterable`            | ⚪️      | Python-specific                         |
 | `ix_`                 | ⚪️      | Python-specific                         |

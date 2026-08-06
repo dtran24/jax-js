@@ -93,6 +93,53 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.isscalar()", () => {
+    test("returns true for JS numbers and booleans", () => {
+      expect(np.isscalar(3.1)).toBe(true);
+      expect(np.isscalar(2)).toBe(true);
+      expect(np.isscalar(NaN)).toBe(true);
+      expect(np.isscalar(true)).toBe(true);
+    });
+
+    test("treats zero-dimensional arrays as scalars", () => {
+      const x = np.array(3.1);
+      expect(np.isscalar(x)).toBe(true);
+      x.dispose();
+    });
+
+    test("returns false for arrays with one or more dimensions", () => {
+      const x = np.array([3.1]);
+      expect(np.isscalar(x)).toBe(false);
+      x.dispose();
+      const y = np.ones([2, 3]);
+      expect(np.isscalar(y)).toBe(false);
+      y.dispose();
+    });
+
+    test("returns false for other JS values", () => {
+      expect(np.isscalar([3.1])).toBe(false);
+      expect(np.isscalar("3.1")).toBe(false);
+      expect(np.isscalar(null)).toBe(false);
+      expect(np.isscalar(undefined)).toBe(false);
+    });
+
+    test("does not consume the array reference", () => {
+      const x = np.array(5);
+      expect(np.isscalar(x)).toBe(true);
+      expect(x.js()).toEqual(5);
+    });
+
+    test("works on tracers inside jit", () => {
+      const f = jit((x: np.Array) => {
+        expect(np.isscalar(x)).toBe(false);
+        const s = x.sum();
+        expect(np.isscalar(s)).toBe(true);
+        return s;
+      });
+      expect(f(np.array([1, 2, 3])).js()).toEqual(6);
+    });
+  });
+
   suite("jax.numpy.average()", () => {
     test("no weights is same as mean", () => {
       const x = np.array([1, 2, 3, 4]);

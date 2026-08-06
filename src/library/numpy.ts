@@ -310,6 +310,18 @@ export function size(a: ArrayLike, axis?: number): number {
   return axis === undefined ? iprod(s) : s[axis];
 }
 
+/**
+ * Return true if the input is a scalar.
+ *
+ * Like JAX (and unlike NumPy), this treats zero-dimensional arrays as
+ * scalars. Returns true for numbers, booleans, and 0-dimensional arrays,
+ * and false for any other value. Does not consume array reference.
+ */
+export function isscalar(element: unknown): boolean {
+  if (element instanceof core.Tracer) return element.ndim === 0;
+  return typeof element === "number" || typeof element === "boolean";
+}
+
 /** Convert an array to a specified dtype. */
 export function astype(a: ArrayLike, dtype: DType): Array {
   return fudgeArray(a).astype(dtype);
