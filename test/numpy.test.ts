@@ -2694,9 +2694,42 @@ suite.each(devices)("device:%s", (device) => {
       expect(y).toBeAllclose([1, 2.5, 4.5]);
     });
 
-    test("rejects non-1D inputs", () => {
-      expect(() => np.polyadd(np.ones([2, 2]), np.ones([2]))).toThrow(
-        "polyadd: both inputs must be 1D",
+    test("supports batched polynomial coefficients", () => {
+      const a1 = np.array([[2, 3, 1]]);
+      const a2 = np.array([
+        [5, 7, 3],
+        [8, 2, 6],
+      ]);
+      expect(np.polyadd(a1, a2).js()).toEqual([
+        [5, 7, 3],
+        [10, 5, 7],
+      ]);
+
+      const batched = np.array([
+        [5, 7, 9],
+        [8, 6, 4],
+      ]);
+      expect(np.polyadd(batched, np.array([2])).js()).toEqual([
+        [5, 7, 9],
+        [10, 8, 6],
+      ]);
+    });
+
+    test("rejects incompatible coefficient batches", () => {
+      expect(() =>
+        np.polyadd(
+          np.array([1, 3, 5]),
+          np.array([
+            [5, 7, 9],
+            [8, 6, 4],
+          ]),
+        ),
+      ).toThrow();
+    });
+
+    test("rejects scalar inputs", () => {
+      expect(() => np.polyadd(np.array(1), np.ones([2]))).toThrow(
+        "polyadd: both inputs must be at least 1D",
       );
     });
 
