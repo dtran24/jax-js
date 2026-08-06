@@ -735,6 +735,16 @@ suite.each(devicesWithLinalg)("device:%s", (device) => {
       expect(np.linalg.norm(v(), { ord: Infinity })).toBeAllclose(4.0);
     });
 
+    test("promotes integer and boolean inputs", () => {
+      const integerResult = np.linalg.norm(np.array([3, 0, -4]), { ord: 0 });
+      expect(integerResult.dtype).toBe(np.float32);
+      expect(integerResult).toBeAllclose(2.0);
+
+      const booleanResult = np.linalg.norm(np.array([true, false, true]));
+      expect(booleanResult.dtype).toBe(np.float32);
+      expect(booleanResult).toBeAllclose(Math.sqrt(2));
+    });
+
     test("vector norm along axis", () => {
       expect(
         np.linalg.norm(batched(), { ord: Infinity, axis: -1 }),
@@ -750,6 +760,9 @@ suite.each(devicesWithLinalg)("device:%s", (device) => {
 
     test("matrix norms for 2D input", () => {
       expect(np.linalg.norm(matrix(), { ord: "fro" })).toBeAllclose(
+        5.477225575051661,
+      );
+      expect(np.linalg.norm(matrix(), { ord: "f" })).toBeAllclose(
         5.477225575051661,
       );
       expect(np.linalg.norm(matrix(), { ord: 1 })).toBeAllclose(6.0);

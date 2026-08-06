@@ -1,6 +1,7 @@
 import * as lax from "./lax";
 import { triangularSolve } from "./lax-linalg";
 import * as np from "./numpy";
+import { isFloatDtype } from "../alu";
 import { Array, ArrayLike, fudgeArray } from "../frontend/array";
 import { checkAxis, checkSquare, generalBroadcast, range } from "../utils";
 
@@ -341,12 +342,13 @@ export function norm(
     axis = null,
     keepdims = false,
   }: {
-    ord?: number | "fro" | "nuc" | null;
+    ord?: number | "f" | "fro" | "nuc" | null;
     axis?: number | number[] | null;
     keepdims?: boolean;
   } = {},
 ): Array {
   x = fudgeArray(x);
+  if (!isFloatDtype(x.dtype)) x = x.astype(np.float32);
   const ndim = x.ndim;
 
   let axes: number[];
@@ -370,7 +372,7 @@ export function norm(
     let [rowAxis, colAxis] = axes;
     if (rowAxis === colAxis)
       throw new Error(`norm: duplicate axes ${JSON.stringify(axis)}`);
-    if (ord === null || ord === "fro") {
+    if (ord === null || ord === "f" || ord === "fro") {
       return np.sqrt(np.sum(np.square(x), axes, { keepdims }));
     } else if (ord === 1 || ord === -1) {
       const sums = np.sum(np.abs(x), rowAxis, { keepdims });
