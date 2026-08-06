@@ -216,7 +216,7 @@ Most operations behave the same way as they do in JAX.
 | `dsplit`              | 🟠      | `split` is supported                    |
 | `dstack`              | 🟢      |                                         |
 | `dtype`               | ⚪️      | can access `Array.dtype`                |
-| `ediff1d`             | 🟠      |                                         |
+| `ediff1d`             | 🟢      |                                         |
 | `einsum`              | 🟢      |                                         |
 | `einsum_path`         | ⚪️      | path is currently private               |
 | `empty`               | ⚪️      | use `zeros`                             |

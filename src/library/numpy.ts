@@ -588,6 +588,30 @@ export function cumulativeProd(
   return cumulativeHelper((x) => x.prod(-1), x, axis, 1);
 }
 
+/**
+ * Compute the differences between consecutive elements of an array.
+ *
+ * The input is flattened before taking differences. Values can optionally be
+ * prepended or appended to the result with `opts.toBegin` and `opts.toEnd`;
+ * like in JAX, these are flattened and cast to the dtype of `ary`.
+ */
+export function ediff1d(
+  ary: ArrayLike,
+  opts?: { toEnd?: ArrayLike; toBegin?: ArrayLike },
+): Array {
+  const arr = ravel(ary);
+  const n = arr.size;
+  const dtype = arr.dtype;
+  const diff = arr.ref
+    .slice([Math.min(n, 1)])
+    .sub(arr.slice([0, Math.max(n - 1, 0)]));
+  const parts = [diff];
+  if (opts?.toBegin !== undefined)
+    parts.unshift(ravel(opts.toBegin).astype(dtype));
+  if (opts?.toEnd !== undefined) parts.push(ravel(opts.toEnd).astype(dtype));
+  return parts.length === 1 ? parts[0] : concatenate(parts, 0);
+}
+
 /** Reverse the elements in an array along the given axes. */
 export function flip(x: ArrayLike, axis: core.Axis = null): Array {
   const nd = ndim(x);
