@@ -24,7 +24,7 @@ In the tables below, we use a color legend to refer to functions in JAX:
 
 ## [`jax`](https://docs.jax.dev/en/latest/jax.html)
 
-[API docs](https://jax-js.com/docs/modules/_jax-js_jax.html) for these functions.
+[API docs](https://jax-js.com/docs/_jax-js/jax.html) for these functions.
 
 | API                  | Support | Notes                                           |
 | -------------------- | ------- | ----------------------------------------------- |
@@ -109,7 +109,7 @@ mostly meant for compatibility in browsers that don't support WebGPU, but you sh
 possible._
 
 Most operations behave the same way as they do in JAX.
-[API docs](https://jax-js.com/docs/modules/_jax-js_jax.numpy.html).
+[API docs](https://jax-js.com/docs/_jax-js/jax/numpy.html).
 
 | API                   | Support | Notes                                   |
 | --------------------- | ------- | --------------------------------------- |
@@ -159,7 +159,7 @@ Most operations behave the same way as they do in JAX.
 | `atleast_2d`          | ⚪️      | confusing, use `reshape`                |
 | `atleast_3d`          | ⚪️      | confusing, use `reshape`                |
 | `average`             | 🟢      |                                         |
-| `bartlett`            | 🟠      |                                         |
+| `bartlett`            | 🟢      |                                         |
 | `bincount`            | 🟠      |                                         |
 | `bitwise_and`         | 🟢      |                                         |
 | `bitwise_count`       | 🟠      |                                         |
@@ -169,7 +169,7 @@ Most operations behave the same way as they do in JAX.
 | `bitwise_or`          | 🟢      |                                         |
 | `bitwise_right_shift` | 🟢      | alias of `right_shift`                  |
 | `bitwise_xor`         | 🟢      |                                         |
-| `blackman`            | 🟠      |                                         |
+| `blackman`            | 🟢      |                                         |
 | `block`               | 🟠      |                                         |
 | `broadcast_arrays`    | 🟢      |                                         |
 | `broadcast_shapes`    | 🟢      |                                         |
@@ -204,8 +204,8 @@ Most operations behave the same way as they do in JAX.
 | `degrees`             | 🟢      |                                         |
 | `delete`              | 🟠      |                                         |
 | `diag`                | 🟢      |                                         |
-| `diag_indices`        | 🟠      |                                         |
-| `diag_indices_from`   | 🟠      |                                         |
+| `diag_indices`        | 🟢      |                                         |
+| `diag_indices_from`   | 🟢      |                                         |
 | `diagflat`            | 🟠      |                                         |
 | `diagonal`            | 🟢      |                                         |
 | `diff`                | 🟠      |                                         |
@@ -213,7 +213,7 @@ Most operations behave the same way as they do in JAX.
 | `divide`              | 🟢      |                                         |
 | `divmod`              | 🟢      |                                         |
 | `dot`                 | 🟢      |                                         |
-| `dsplit`              | 🟠      | `split` is supported                    |
+| `dsplit`              | 🟢      |                                         |
 | `dstack`              | 🟢      |                                         |
 | `dtype`               | ⚪️      | can access `Array.dtype`                |
 | `ediff1d`             | 🟠      |                                         |
@@ -236,11 +236,11 @@ Most operations behave the same way as they do in JAX.
 | `flip`                | 🟢      |                                         |
 | `fliplr`              | 🟢      |                                         |
 | `flipud`              | 🟢      |                                         |
-| `float_power`         | 🟠      |                                         |
+| `float_power`         | 🟢      |                                         |
 | `floor`               | 🟢      |                                         |
 | `floor_divide`        | 🟢      |                                         |
-| `fmax`                | 🟠      | use `maximum`                           |
-| `fmin`                | 🟠      | use `minimum`                           |
+| `fmax`                | 🟢      |                                         |
+| `fmin`                | 🟢      |                                         |
 | `fmod`                | 🟢      |                                         |
 | `frexp`               | 🟢      |                                         |
 | `frombuffer`          | 🟠      |                                         |
@@ -265,7 +265,7 @@ Most operations behave the same way as they do in JAX.
 | `histogram_bin_edges` | 🔴      |                                         |
 | `histogram2d`         | 🔴      |                                         |
 | `histogramdd`         | 🔴      |                                         |
-| `hsplit`              | 🟠      | `split` is supported                    |
+| `hsplit`              | 🟢      |                                         |
 | `hstack`              | 🟢      |                                         |
 | `hypot`               | 🟡      | implemented as `sqrt(x^2 + y^2)`        |
 | `i0`                  | 🔴      | transcendental                          |
@@ -284,14 +284,14 @@ Most operations behave the same way as they do in JAX.
 | `iscomplexobj`        | ⚪️      | complex numbers                         |
 | `isdtype`             | 🟠      |                                         |
 | `isfinite`            | 🟢      |                                         |
-| `isin`                | 🔴      |                                         |
+| `isin`                | 🟢      |                                         |
 | `isinf`               | 🟢      |                                         |
 | `isnan`               | 🟢      |                                         |
 | `isneginf`            | 🟢      |                                         |
 | `isposinf`            | 🟢      |                                         |
 | `isreal`              | ⚪️      | complex numbers                         |
 | `isrealobj`           | ⚪️      | complex numbers                         |
-| `isscalar`            | 🟠      |                                         |
+| `isscalar`            | 🟢      |                                         |
 | `issubdtype`          | 🟠      |                                         |
 | `iterable`            | ⚪️      | Python-specific                         |
 | `ix_`                 | ⚪️      | Python-specific                         |
@@ -365,7 +365,7 @@ Most operations behave the same way as they do in JAX.
 | `piecewise`           | 🔴      | `lax.switch` control flow               |
 | `place`               | 🔴      |                                         |
 | `poly`                | 🔴      |                                         |
-| `polyadd`             | 🟠      |                                         |
+| `polyadd`             | 🟢      |                                         |
 | `polyder`             | 🟠      |                                         |
 | `polydiv`             | 🔴      |                                         |
 | `polyfit`             | 🔴      |                                         |
@@ -394,7 +394,7 @@ Most operations behave the same way as they do in JAX.
 | `repeat`              | 🟢      |                                         |
 | `reshape`             | 🟢      |                                         |
 | `resize`              | 🟠      |                                         |
-| `result_type`         | 🟠      | see `promote_types`                     |
+| `result_type`         | 🟢      |                                         |
 | `right_shift`         | 🟢      |                                         |
 | `rint`                | 🟢      |                                         |
 | `roll`                | 🟢      |                                         |
@@ -412,7 +412,7 @@ Most operations behave the same way as they do in JAX.
 | `setxor1d`            | ⚪️      | Python-specific                         |
 | `shape`               | 🟢      |                                         |
 | `sign`                | 🟢      |                                         |
-| `signbit`             | 🔴      |                                         |
+| `signbit`             | 🟢      |                                         |
 | `sin`                 | 🟢      |                                         |
 | `sinc`                | 🟡      | JVP not supported at x=0                |
 | `sinh`                | 🟢      |                                         |
@@ -457,7 +457,7 @@ Most operations behave the same way as they do in JAX.
 | `unique_values`       | 🔴      | sorting                                 |
 | `unpackbits`          | ⚪️      | no uint8 support                        |
 | `unravel_index`       | 🟠      |                                         |
-| `unstack`             | 🟠      |                                         |
+| `unstack`             | 🟢      |                                         |
 | `unwrap`              | 🔴      |                                         |
 | `vander`              | 🟢      |                                         |
 | `var`                 | 🟢      |                                         |
@@ -694,7 +694,7 @@ These modules are unimplemented:
 - `jax.example_libraries`
 - `jax.experimental`
 
-## [`optax`](https://jax-js.com/docs/_jax-js/onnx)
+## [`optax`](https://jax-js.com/docs/_jax-js/optax)
 
 We have ported a subset of the [Optax](https://github.com/google-deepmind/optax) gradient processing
 and optimization library at `@jax-js/optax`. You can install this alongside `@jax-js/jax`.
