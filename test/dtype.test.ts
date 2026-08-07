@@ -160,7 +160,7 @@ suite("resultType", () => {
 
   test("single argument returns its dtype", () => {
     expect(np.resultType(np.float64)).toBe(np.float64);
-    expect(np.resultType(3)).toBe(np.float32); // weak numbers resolve to float32
+    expect(np.resultType(3)).toBe(np.float32);
     expect(np.resultType(true)).toBe(np.bool);
   });
 
@@ -184,8 +184,8 @@ suite("resultType", () => {
   test("ignores shapes and does not consume references", () => {
     const a = np.array([1, 2]);
     const b = np.array([1, 2, 3], { dtype: np.float16 });
-    expect(np.resultType(a, b)).toBe(np.float32); // shapes need not broadcast
-    expect(a.js()).toEqual([1, 2]); // a and b were not consumed
+    expect(np.resultType(a, b)).toBe(np.float32);
+    expect(a.js()).toEqual([1, 2]);
     expect(b.js()).toEqual([1, 2, 3]);
   });
 
