@@ -24,17 +24,24 @@ const safeCasts: Readonly<Record<DType, readonly DType[]>> = {
   [DType.Float64]: [DType.Float64],
 };
 
-// Kind ordering used by "same_kind" casting: bool < unsigned integer < signed
-// integer < float. NumPy allows same-kind casts upward through this ordering,
-// so uint32 can cast to int32 but not vice versa.
-const kindRank = (dtype: DType): number =>
-  dtype === DType.Bool
-    ? 0
-    : dtype === DType.Uint32
-      ? 1
-      : dtype === DType.Int32
-        ? 2
-        : 3;
+// Follow NumPy's "same_kind" ordering: uint32 can cast to int32, but not vice versa.
+const kindRank = (dtype: DType): number => {
+  switch (dtype) {
+    case DType.Bool:
+      return 0;
+    case DType.Uint32:
+      return 1;
+    case DType.Int32:
+      return 2;
+    case DType.Float16:
+    case DType.Float32:
+    case DType.Float64:
+      return 3;
+    default:
+      dtype satisfies never;
+      throw new Error(`canCast: unsupported dtype ${dtype}`);
+  }
+};
 
 /**
  * Returns true if a cast between data types can occur according to the given
