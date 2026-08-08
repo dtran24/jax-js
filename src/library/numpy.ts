@@ -310,9 +310,44 @@ export function size(a: ArrayLike, axis?: number): number {
   return axis === undefined ? iprod(s) : s[axis];
 }
 
+/**
+ * Return true if the input is a scalar.
+ *
+ * Like JAX (and unlike NumPy), this treats zero-dimensional arrays as
+ * scalars. Returns true for numbers, booleans, and 0-dimensional arrays,
+ * and false for any other value. Does not consume array reference.
+ */
+export function isscalar(element: unknown): boolean {
+  if (element instanceof core.Tracer) return element.ndim === 0;
+  return typeof element === "number" || typeof element === "boolean";
+}
+
 /** Convert an array to a specified dtype. */
 export function astype(a: ArrayLike, dtype: DType): Array {
   return fudgeArray(a).astype(dtype);
+}
+
+/**
+ * Return the dtype resulting from applying type promotion rules to the
+ * arguments, which may be arrays, JS numbers or booleans, or dtypes.
+ *
+ * Weakly typed values (e.g., JS numbers) only affect the result when every
+ * argument is weakly typed, following the same rules as `promoteTypes()`.
+ * Does not consume array references.
+ */
+export function resultType(...args: (ArrayLike | DType)[]): DType {
+  if (args.length === 0)
+    throw new TypeError("resultType requires at least one argument");
+  const avals = args.map((x) => {
+    if (typeof x === "string") {
+      if (!Object.values(DType).includes(x))
+        throw new TypeError(`resultType: invalid dtype '${x}'`);
+      return new core.ShapedArray([], x, false);
+    }
+    const { dtype, weakType } = core.getAval(x);
+    return new core.ShapedArray([], dtype, weakType);
+  });
+  return avals.reduce((a, b) => core.promoteAvals(a, b)).dtype;
 }
 
 /** Sum of the elements of the array over a given axis, or axes. */
@@ -673,6 +708,35 @@ export function dsplit(
   return split(a, indicesOrSections, 2);
 }
 
+/**
+ * Split an array into multiple sub-arrays horizontally (column-wise).
+ *
+ * Equivalent to `split()` along axis 1 for arrays of rank 2 or higher, or
+ * along axis 0 for rank-1 arrays.
+ */
+export function hsplit(
+  a: ArrayLike,
+  indicesOrSections: number | number[],
+): Array[] {
+  a = fudgeArray(a);
+  if (a.ndim === 0) {
+    throw new Error("hsplit only works on arrays of 1 or more dimensions");
+  }
+  return split(a, indicesOrSections, a.ndim > 1 ? 1 : 0);
+}
+
+/**
+ * Split an array into multiple sub-arrays vertically (row-wise).
+ *
+ * Equivalent to `split` with `axis=0`.
+ */
+export function vsplit(
+  a: ArrayLike,
+  indicesOrSections: number | number[],
+): Array[] {
+  return split(a, indicesOrSections, 0);
+}
+
 function splitBySizes(a: Array, sizes: number[], axis: number): Array[] {
   // Split in groups of up to 8 outputs, as the transpose rule turns into a
   // Concatenate primitive that has limited input arguments.
@@ -753,6 +817,27 @@ export function stack(xs: ArrayLike[], axis: number = 0): Array {
   const newShape = shapes[0].toSpliced(axis, 0, 1);
   const newArrays = xs.map((x) => fudgeArray(x).reshape(newShape));
   return concatenate(newArrays, axis) as Array;
+}
+
+/**
+ * Split an array into a sequence of arrays along the given axis.
+ *
+ * The `axis` parameter specifies the dimension of the input array to unstack
+ * along; it is removed from the shape of each output array. This is the
+ * inverse operation of `stack()`.
+ */
+export function unstack(x: ArrayLike, axis: number = 0): Array[] {
+  x = fudgeArray(x);
+  if (x.ndim === 0) {
+    throw new Error("unstack requires arrays with rank > 0");
+  }
+  axis = checkAxis(axis, x.ndim);
+  const size = x.shape[axis];
+  if (size === 0) {
+    x.dispose();
+    return [];
+  }
+  return split(x, size, axis).map((part) => squeeze(part, axis));
 }
 
 /**
@@ -1136,6 +1221,14 @@ export function diag(v: ArrayLike, k = 0): Array {
   } else {
     throw new Error("numpy.diag only supports 1D and 2D arrays");
   }
+}
+
+/**
+ * Create a two-dimensional array with the flattened input on the k-th
+ * diagonal.
+ */
+export function diagflat(v: ArrayLike, k = 0): Array {
+  return diag(ravel(v), k);
 }
 
 /**
@@ -1744,6 +1837,83 @@ export function vander(
   return increasing
     ? concatenate([ones, powered], 1)
     : concatenate([powered, ones], 1);
+}
+
+/**
+ * Return the sum of two polynomials.
+ *
+ * The first axis contains polynomial coefficients, ordered from highest degree
+ * to the constant term. Remaining axes are broadcast batch dimensions. The
+ * shorter coefficient axis is aligned with the end of the longer one.
+ */
+export function polyadd(a1: ArrayLike, a2: ArrayLike): Array {
+  a1 = fudgeArray(a1);
+  a2 = fudgeArray(a2);
+  if (a1.ndim === 0 || a2.ndim === 0) {
+    const [ndim1, ndim2] = [a1.ndim, a2.ndim];
+    a1.dispose();
+    a2.dispose();
+    throw new Error(
+      `polyadd: both inputs must be at least 1D arrays, got ${ndim1}D and ${ndim2}D`,
+    );
+  }
+
+  // Match JAX's indexed-update semantics: the input with the longer
+  // coefficient axis determines the result shape. For equal lengths, a1 does.
+  let base = a1;
+  let update = a2;
+  if (a2.shape[0] > a1.shape[0]) [base, update] = [a2, a1];
+
+  const updateShape = [update.shape[0], ...base.shape.slice(1)];
+  try {
+    update = broadcastTo(update, updateShape);
+  } catch (e) {
+    base.dispose();
+    update.dispose();
+    throw e;
+  }
+  const leading = base.shape[0] - update.shape[0];
+  if (leading > 0) update = pad(update, { 0: [leading, 0] });
+  return add(base, update);
+}
+
+/**
+ * Return the difference of two polynomials.
+ *
+ * The first axis contains polynomial coefficients, ordered from highest degree
+ * to the constant term. Remaining axes are broadcast batch dimensions. The
+ * shorter coefficient axis is aligned with the end of the longer one.
+ */
+export function polysub(a1: ArrayLike, a2: ArrayLike): Array {
+  a1 = fudgeArray(a1);
+  a2 = fudgeArray(a2);
+  if (a1.ndim === 0 || a2.ndim === 0) {
+    const [ndim1, ndim2] = [a1.ndim, a2.ndim];
+    a1.dispose();
+    a2.dispose();
+    throw new Error(
+      `polysub: both inputs must be at least 1D arrays, got ${ndim1}D and ${ndim2}D`,
+    );
+  }
+
+  // Match JAX's indexed-update semantics: the input with the longer
+  // coefficient axis determines the result shape. For equal lengths, a1 does.
+  const a2IsLonger = a2.shape[0] > a1.shape[0];
+  let base = a1;
+  let update = a2;
+  if (a2IsLonger) [base, update] = [a2, a1];
+
+  const updateShape = [update.shape[0], ...base.shape.slice(1)];
+  try {
+    update = broadcastTo(update, updateShape);
+  } catch (e) {
+    base.dispose();
+    update.dispose();
+    throw e;
+  }
+  const leading = base.shape[0] - update.shape[0];
+  if (leading > 0) update = pad(update, { 0: [leading, 0] });
+  return a2IsLonger ? subtract(update, base) : subtract(base, update);
 }
 
 /**

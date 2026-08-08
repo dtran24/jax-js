@@ -63,6 +63,7 @@ of late 2025.
 
 Community usage:
 
+- [**jax-realtime**: Full-duplex voice assistant running entirely in your browser](https://jax-realtime.netlify.app)
 - [**fluent**: Tiny language for reactive, differentiable tensors](https://github.com/mlajtos/fluent)
 - [**g9-jaxjs**: Automatically interactive graphics with forward-mode AD](https://srush.github.io/g9jax/)
 - [**autoresearch-webgpu**: autoresesarch, in the browser](https://autoresearch.lucasgelfond.online/)
@@ -72,7 +73,7 @@ Community usage:
 
 Demos on the jax-js website:
 
-- [Chat with Gemma 3](https://jax-js.com/chat)
+- [Chat with in-browser LLMs](https://jax-js.com/chat)
 - [Training neural networks on MNIST](https://jax-js.com/mnist)
 - [Voice cloning: Kyutai Pocket TTS](https://jax-js.com/tts)
 - [Speech recognition: OpenAI Whisper](https://jax-js.com/tts)

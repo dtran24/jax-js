@@ -206,7 +206,7 @@ Most operations behave the same way as they do in JAX.
 | `diag`                | 🟢      |                                         |
 | `diag_indices`        | 🟢      |                                         |
 | `diag_indices_from`   | 🟢      |                                         |
-| `diagflat`            | 🟠      |                                         |
+| `diagflat`            | 🟢      |                                         |
 | `diagonal`            | 🟢      |                                         |
 | `diff`                | 🟠      |                                         |
 | `digitize`            | 🟠      |                                         |
@@ -265,7 +265,7 @@ Most operations behave the same way as they do in JAX.
 | `histogram_bin_edges` | 🔴      |                                         |
 | `histogram2d`         | 🔴      |                                         |
 | `histogramdd`         | 🔴      |                                         |
-| `hsplit`              | 🟠      | `split` is supported                    |
+| `hsplit`              | 🟢      |                                         |
 | `hstack`              | 🟢      |                                         |
 | `hypot`               | 🟡      | implemented as `sqrt(x^2 + y^2)`        |
 | `i0`                  | 🔴      | transcendental                          |
@@ -291,7 +291,7 @@ Most operations behave the same way as they do in JAX.
 | `isposinf`            | 🟢      |                                         |
 | `isreal`              | ⚪️      | complex numbers                         |
 | `isrealobj`           | ⚪️      | complex numbers                         |
-| `isscalar`            | 🟠      |                                         |
+| `isscalar`            | 🟢      |                                         |
 | `issubdtype`          | 🟠      |                                         |
 | `iterable`            | ⚪️      | Python-specific                         |
 | `ix_`                 | ⚪️      | Python-specific                         |
@@ -365,13 +365,13 @@ Most operations behave the same way as they do in JAX.
 | `piecewise`           | 🔴      | `lax.switch` control flow               |
 | `place`               | 🔴      |                                         |
 | `poly`                | 🔴      |                                         |
-| `polyadd`             | 🟠      |                                         |
+| `polyadd`             | 🟢      |                                         |
 | `polyder`             | 🟠      |                                         |
 | `polydiv`             | 🔴      |                                         |
 | `polyfit`             | 🔴      |                                         |
 | `polyint`             | 🟠      |                                         |
 | `polymul`             | 🟠      |                                         |
-| `polysub`             | 🟠      |                                         |
+| `polysub`             | 🟢      |                                         |
 | `polyval`             | 🟠      |                                         |
 | `positive`            | 🟢      |                                         |
 | `pow`                 | 🟢      |                                         |
@@ -394,7 +394,7 @@ Most operations behave the same way as they do in JAX.
 | `repeat`              | 🟢      |                                         |
 | `reshape`             | 🟢      |                                         |
 | `resize`              | 🟠      |                                         |
-| `result_type`         | 🟠      | see `promote_types`                     |
+| `result_type`         | 🟢      |                                         |
 | `right_shift`         | 🟢      |                                         |
 | `rint`                | 🟢      |                                         |
 | `roll`                | 🟢      |                                         |
@@ -457,7 +457,7 @@ Most operations behave the same way as they do in JAX.
 | `unique_values`       | 🔴      | sorting                                 |
 | `unpackbits`          | ⚪️      | no uint8 support                        |
 | `unravel_index`       | 🟠      |                                         |
-| `unstack`             | 🟠      |                                         |
+| `unstack`             | 🟢      |                                         |
 | `unwrap`              | 🔴      |                                         |
 | `vander`              | 🟢      |                                         |
 | `var`                 | 🟢      |                                         |
@@ -465,7 +465,7 @@ Most operations behave the same way as they do in JAX.
 | `vecdot`              | 🟢      |                                         |
 | `vecmat`              | 🟢      |                                         |
 | `vectorize`           | 🟠      |                                         |
-| `vsplit`              | 🟠      | `split` is supported                    |
+| `vsplit`              | 🟢      |                                         |
 | `vstack`              | 🟢      |                                         |
 | `where`               | 🟢      |                                         |
 | `zeros`               | 🟢      |                                         |
