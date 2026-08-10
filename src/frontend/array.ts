@@ -1779,7 +1779,7 @@ export function geomspace(
     10,
     { dtype: computationDtype, device },
   );
-  const result = sign < 0 ? (coreMul(y, -1) as Array) : y;
+  const result = sign < 0 ? y.mul(-1) : y;
   return result.dtype === dtype ? result : result.astype(dtype);
 }
 
