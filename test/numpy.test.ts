@@ -620,7 +620,6 @@ suite.each(devices)("device:%s", (device) => {
 
   suite("jax.numpy.geomspace()", () => {
     test("creates a geometric progression", () => {
-      // geomspace(1, 1000, 4) should give [1, 10, 100, 1000]
       const x = np.geomspace(1, 1000, 4);
       expect(x.js()).toBeAllclose([1, 10, 100, 1000]);
     });
@@ -641,7 +640,6 @@ suite.each(devices)("device:%s", (device) => {
     });
 
     test("handles endpoint=false", () => {
-      // geomspace(1, 10000, 4, endpoint=false) should give [1, 10, 100, 1000]
       const x = np.geomspace(1, 10000, 4, false);
       expect(x.js()).toBeAllclose([1, 10, 100, 1000]);
     });
