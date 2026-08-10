@@ -591,9 +591,9 @@ export function cumulativeProd(
 /**
  * Compute the differences between consecutive elements of an array.
  *
- * The input is flattened before taking differences. Values can optionally be
- * prepended or appended to the result with `opts.toBegin` and `opts.toEnd`;
- * like in JAX, these are flattened and cast to the dtype of `ary`.
+ * The input is flattened before taking differences. `opts.toBegin` and
+ * `opts.toEnd` are flattened, cast to the input dtype, and prepended or
+ * appended to the result.
  */
 export function ediff1d(
   ary: ArrayLike,
