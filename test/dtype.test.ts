@@ -148,3 +148,49 @@ suite("weak types", () => {
     expect(b.js()).toEqual(10);
   });
 });
+
+suite("resultType", () => {
+  test("promotes dtype arguments", () => {
+    expect(np.resultType(np.uint32, np.int32)).toBe(np.int32);
+    expect(np.resultType(np.int32, np.float16)).toBe(np.float16);
+    expect(np.resultType(np.bool, np.int32)).toBe(np.int32);
+    expect(np.resultType(np.float16, np.float32)).toBe(np.float32);
+    expect(np.resultType(np.float32, np.float64)).toBe(np.float64);
+  });
+
+  test("single argument returns its dtype", () => {
+    expect(np.resultType(np.float64)).toBe(np.float64);
+    expect(np.resultType(3)).toBe(np.float32);
+    expect(np.resultType(true)).toBe(np.bool);
+  });
+
+  test("weak numbers defer to strong dtypes", () => {
+    const a = np.array([1, 2], { dtype: np.int32 });
+    expect(np.resultType(a, 3.5)).toBe(np.int32);
+    a.dispose();
+    expect(np.resultType(2, np.float16)).toBe(np.float16);
+    expect(np.resultType(1, 2.5)).toBe(np.float32);
+  });
+
+  test("matches promotion behavior of ops", () => {
+    // Weak numbers promote bool to at least uint32, same as np.add() does.
+    const a = np.array([true, false]);
+    const b = a.add(2);
+    expect(np.resultType(true, 2)).toBe(b.dtype);
+    expect(b.dtype).toBe(np.uint32);
+    b.dispose();
+  });
+
+  test("ignores shapes and does not consume references", () => {
+    const a = np.array([1, 2]);
+    const b = np.array([1, 2, 3], { dtype: np.float16 });
+    expect(np.resultType(a, b)).toBe(np.float32);
+    expect(a.js()).toEqual([1, 2]);
+    expect(b.js()).toEqual([1, 2, 3]);
+  });
+
+  test("throws on invalid arguments", () => {
+    expect(() => np.resultType()).toThrow(TypeError);
+    expect(() => np.resultType("float99" as np.DType)).toThrow(/invalid dtype/);
+  });
+});

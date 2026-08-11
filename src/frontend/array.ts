@@ -1349,7 +1349,9 @@ function arrayFromData(
     // Check if all elements are of the same value and short-circuit.
     let allEqual = true;
     for (let i = 1; i < data.length; i++) {
-      if (data[i] !== data[0]) {
+      // `!==` checks ordinary inequality and keeps NaN off the constant path
+      // (NaN !== NaN); `Object.is` additionally distinguishes -0 from 0.
+      if (data[i] !== data[0] || !Object.is(data[i], data[0])) {
         allEqual = false;
         break;
       }
