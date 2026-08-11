@@ -116,7 +116,7 @@ type IInfo = Readonly<{
   min: number;
 }>;
 
-/** A dtype kind, as accepted by {@link isdtype}. */
+/** A dtype or dtype category accepted by the `kind` parameter of `isdtype`. */
 export type DTypeKind =
   | DType
   | "bool"
