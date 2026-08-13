@@ -2211,11 +2211,10 @@ export function rad2deg(x: ArrayLike): Array {
 export const degrees = rad2deg;
 
 /**
- * Unwrap by taking the complement of large deltas with respect to the period.
+ * Unwrap a periodic signal.
  *
- * This unwraps a signal `p` by changing elements which have an absolute
- * difference from their predecessor of more than `max(discont, period / 2)` to
- * their `period`-complementary values.
+ * Shifts values by multiples of `period` to reduce large differences between
+ * consecutive values.
  *
  * @param p - Input array.
  * @param discont - Maximum discontinuity between values. Defaults to
