@@ -1892,6 +1892,40 @@ export function vander(
 }
 
 /**
+ * Evaluate a polynomial at specific values.
+ *
+ * If `p` has length N, this returns the value
+ * `p[0]*x**(N-1) + p[1]*x**(N-2) + ... + p[N-2]*x + p[N-1]`, computed via
+ * Horner's scheme. Additional dimensions in `p` are broadcast against `x`.
+ *
+ * @param p - Array of polynomial coefficients along the leading axis, from
+ *   highest degree to the constant term.
+ * @param x - Values at which to evaluate the polynomial.
+ */
+export function polyval(p: ArrayLike, x: ArrayLike): Array {
+  p = fudgeArray(p);
+  x = fudgeArray(x);
+  if (p.ndim === 0) {
+    const ndim = p.ndim;
+    p.dispose();
+    x.dispose();
+    throw new Error(
+      `polyval: coefficients must have at least one dimension, got ${ndim}D`,
+    );
+  }
+  const n = p.shape[0];
+  const dtype = core.promoteAvals(p.aval.scalar(), x.aval.scalar()).dtype;
+  const shape = generalBroadcast(p.shape.slice(1), x.shape);
+  let y = zerosLike(x.ref, { dtype, shape });
+  for (let i = 0; i < n; i++) {
+    y = y.mul(x.ref).add(p.ref.slice(i));
+  }
+  p.dispose();
+  x.dispose();
+  return y;
+}
+
+/**
  * Return the sum of two polynomials.
  *
  * The first axis contains polynomial coefficients, ordered from highest degree
