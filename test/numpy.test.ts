@@ -1670,9 +1670,7 @@ suite.each(devices)("device:%s", (device) => {
       );
     });
 
-    test("handles deltas of exactly half the period", () => {
-      // A jump of exactly +pi is disambiguated to the positive complement, so
-      // a ramp in half-period steps is left unchanged, matching numpy.
+    test("handles half-period deltas like NumPy", () => {
       const up = np.unwrap(np.array([0, Math.PI, 2 * Math.PI]));
       expect(up.js()).toBeAllclose([0, Math.PI, 2 * Math.PI], { atol: 1e-5 });
       const down = np.unwrap(np.array([0, -Math.PI, -2 * Math.PI]));
