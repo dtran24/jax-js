@@ -1693,8 +1693,8 @@ suite.each(devices)("device:%s", (device) => {
       const result = f(np.array([0, Math.PI - 0.1, 2 * Math.PI + 0.5]));
       expect(result.js()).toBeAllclose([0, Math.PI - 0.1, 0.5], { atol: 1e-5 });
 
-      // The phase correction is piecewise-constant, so the gradient of the
-      // sum is 1 for every element.
+      // Each output is x minus a fixed constant, such as x - 0 or x - 2π,
+      // so its gradient with respect to x is 1.
       const g = grad((x: np.Array) => np.unwrap(x).sum());
       expect(g(np.array([0, 3.5, 7])).js()).toEqual([1, 1, 1]);
     });
