@@ -711,6 +711,59 @@ export function trapezoid(
 }
 
 /**
+ * Calculate the n-th discrete difference along the given axis.
+ *
+ * The first difference is given by `out[i] = a[i+1] - a[i]` along the given
+ * axis, and higher differences are calculated by applying this recursively.
+ * Boolean arrays are differenced with `notEqual` instead of subtraction.
+ *
+ * The `prepend` and `append` options attach values along `axis` before the
+ * differences are taken. Scalars are broadcast to size 1 along `axis`.
+ */
+export function diff(
+  a: ArrayLike,
+  n: number = 1,
+  axis: number = -1,
+  opts?: { prepend?: ArrayLike; append?: ArrayLike },
+): Array {
+  a = fudgeArray(a);
+  if (!Number.isInteger(n) || n < 0) {
+    a.dispose();
+    throw new Error(`diff: order must be a non-negative integer, got ${n}`);
+  }
+  if (n === 0) return a;
+  if (a.ndim === 0) {
+    a.dispose();
+    throw new Error("diff: input must be at least one-dimensional");
+  }
+  axis = checkAxis(axis, a.ndim);
+
+  if (opts?.prepend !== undefined || opts?.append !== undefined) {
+    const edgeShape = a.shape.toSpliced(axis, 1, 1);
+    const combined: Array[] = [a];
+    if (opts.prepend !== undefined) {
+      let prepend = fudgeArray(opts.prepend);
+      if (prepend.ndim === 0) prepend = broadcastTo(prepend, edgeShape);
+      combined.unshift(prepend);
+    }
+    if (opts.append !== undefined) {
+      let append = fudgeArray(opts.append);
+      if (append.ndim === 0) append = broadcastTo(append, edgeShape);
+      combined.push(append);
+    }
+    a = concatenate(combined, axis);
+  }
+
+  const op = a.dtype === bool ? notEqual : subtract;
+  const upper = a.shape.map((_, i): [] | [number] => (i === axis ? [1] : []));
+  const lower = a.shape.map((_, i): [] | Pair => (i === axis ? [0, -1] : []));
+  for (let i = Math.min(n, a.shape[axis]); i > 0; i--) {
+    a = op(a.ref.slice(...upper), a.slice(...lower));
+  }
+  return a;
+}
+
+/**
  * Compute the differences between consecutive elements of an array.
  *
  * The input is flattened before taking differences. `opts.toBegin` and

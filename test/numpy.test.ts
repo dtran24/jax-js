@@ -292,6 +292,74 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.diff()", () => {
+    test("computes the first difference", () => {
+      const x = np.array([1, 2, 4, 7, 0]);
+      expect(np.diff(x).js()).toEqual([1, 2, 3, -7]);
+    });
+
+    test("computes higher-order differences", () => {
+      const x = np.array([1, 2, 4, 7, 0]);
+      expect(np.diff(x.ref, 2).js()).toEqual([1, 1, -10]);
+      expect(np.diff(x, 3).js()).toEqual([0, -11]);
+    });
+
+    test("returns the array unchanged for n=0, ignoring edge values", () => {
+      const x = np.array([1, 5, 2]);
+      expect(np.diff(x, 0, -1, { prepend: 0, append: 10 }).js()).toEqual([
+        1, 5, 2,
+      ]);
+    });
+
+    test("returns an empty array when n exceeds the axis size", () => {
+      const x = np.arange(3);
+      const y = np.diff(x, 5);
+      expect(y.shape).toEqual([0]);
+      expect(y.js()).toEqual([]);
+    });
+
+    test("differences along an axis", () => {
+      const x = np.array([
+        [1, 3, 6, 10],
+        [0, 5, 6, 8],
+      ]);
+      expect(np.diff(x.ref).js()).toEqual([
+        [2, 3, 4],
+        [5, 1, 2],
+      ]);
+      expect(np.diff(x, 1, 0).js()).toEqual([[-1, 2, 0, -2]]);
+    });
+
+    test("supports prepend and append values", () => {
+      const x = np.array([1, 2, 4, 7, 0]);
+      expect(np.diff(x.ref, 1, -1, { prepend: 0, append: 10 }).js()).toEqual([
+        1, 1, 2, 3, -7, 10,
+      ]);
+      expect(np.diff(x, 1, -1, { prepend: np.array([0, 1]) }).js()).toEqual([
+        1, 0, 1, 2, 3, -7,
+      ]);
+    });
+
+    test("uses notEqual for boolean arrays", () => {
+      const x = np.array([true, true, false, true]);
+      expect(np.diff(x).js()).toEqual([false, true, true]);
+    });
+
+    test("throws on invalid inputs", () => {
+      expect(() => np.diff(5)).toThrow("at least one-dimensional");
+      expect(() => np.diff(np.arange(3), -1)).toThrow("non-negative");
+    });
+
+    test("works with jit and grad", () => {
+      const f = jit((x: np.Array) => np.diff(x, 2));
+      expect(f(np.array([1, 2, 4, 7, 0])).js()).toEqual([1, 1, -10]);
+
+      const x = np.array([1, 2, 4]);
+      const dx = grad((x: np.Array) => np.diff(x).sum())(x);
+      expect(dx.js()).toEqual([-1, 0, 1]);
+    });
+  });
+
   suite("jax.numpy.ediff1d()", () => {
     test("computes consecutive differences", () => {
       const x = np.array([1, 2, 4, 7, 0]);
