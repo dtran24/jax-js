@@ -2265,8 +2265,8 @@ export function unwrap(
     interval,
     ddmod,
   );
-  const phCorrect = where(less(absolute(dd.ref), disc), 0, ddmod.sub(dd));
-  return concatenate([head, tail.add(cumsum(phCorrect, axis))], axis);
+  const phaseCorrection = where(less(absolute(dd.ref), disc), 0, ddmod.sub(dd));
+  return concatenate([head, tail.add(cumsum(phaseCorrection, axis))], axis);
 }
 
 /**
