@@ -16,9 +16,9 @@ Other features just aren't implemented yet. But those can probably be added easi
 
 In the tables below, we use a color legend to refer to functions in JAX:
 
-- 🟢 = supported **(~63%)**
+- 🟢 = supported **(~68%)**
 - 🟡 = supported, with API limitations **(~3%)**
-- 🟠 = not supported, easy to add (<1 day) **(~23%)**
+- 🟠 = not supported, easy to add (<1 day) **(~18%)**
 - 🔴 = not supported **(~11%)**
 - ⚪️ = not applicable, will not be supported (see notes)
 
@@ -216,7 +216,7 @@ Most operations behave the same way as they do in JAX.
 | `dsplit`              | 🟢      |                                         |
 | `dstack`              | 🟢      |                                         |
 | `dtype`               | ⚪️      | can access `Array.dtype`                |
-| `ediff1d`             | 🟠      |                                         |
+| `ediff1d`             | 🟢      |                                         |
 | `einsum`              | 🟢      |                                         |
 | `einsum_path`         | ⚪️      | path is currently private               |
 | `empty`               | ⚪️      | use `zeros`                             |
