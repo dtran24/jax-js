@@ -2234,8 +2234,8 @@ export function unwrap(
   if (!isFloatDtype(x.dtype)) x = astype(x, float32);
   if (x.shape[axis] <= 1) return x;
 
-  // Round the scalar constants to the array's dtype, so that every backend
-  // agrees exactly on boundary cases like a delta of precisely `period / 2`.
+  // Round scalar constants to the array's dtype so backends agree on
+  // boundary cases like a delta of `period / 2`.
   const toDtype =
     x.dtype === DType.Float64
       ? (v: number) => v
