@@ -1629,7 +1629,7 @@ suite.each(devices)("device:%s", (device) => {
       expect(b.js()).toBeAllclose([2, 3, 4, 5, 6, 7, 8, 9]);
     });
 
-    test("larger discont leaves jumps intact", () => {
+    test("larger discont preserves values", () => {
       expect(np.unwrap(np.array([0, 3.5])).js()).toBeAllclose([
         0,
         3.5 - 2 * Math.PI,
