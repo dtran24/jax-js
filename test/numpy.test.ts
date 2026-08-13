@@ -1670,6 +1670,31 @@ suite.each(devices)("device:%s", (device) => {
       );
     });
 
+    test("operates along a higher-rank interior axis", () => {
+      const x = np.array([
+        [
+          [
+            [0, 0.5],
+            [2 * Math.PI + 0.1, 2 * Math.PI + 0.6],
+            [4 * Math.PI + 0.2, 4 * Math.PI + 0.7],
+          ],
+        ],
+      ]);
+
+      expect(np.unwrap(x, null, 2).js()).toBeAllclose(
+        [
+          [
+            [
+              [0, 0.5],
+              [0.1, 0.6],
+              [0.2, 0.7],
+            ],
+          ],
+        ],
+        { atol: 1e-5 },
+      );
+    });
+
     test("handles half-period deltas like NumPy", () => {
       const up = np.unwrap(np.array([0, Math.PI, 2 * Math.PI]));
       expect(up.js()).toBeAllclose([0, Math.PI, 2 * Math.PI], { atol: 1e-5 });
