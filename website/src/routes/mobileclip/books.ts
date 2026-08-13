@@ -33,6 +33,15 @@ export async function downloadBook(id: string): Promise<Book> {
   }
 }
 
+/** Build a single-chapter book from raw uploaded text. */
+export function bookFromText(title: string, text: string): Book {
+  return {
+    title,
+    author: "",
+    chapters: [{ title: "Full text", excerpts: splitExcerpts(text) }],
+  };
+}
+
 /** Split text into excerpts by paragraphs, with size constraints. */
 function splitExcerpts(text: string): string[] {
   const MIN_LENGTH = 40;
