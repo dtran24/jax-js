@@ -6,11 +6,13 @@ import {
   Array,
   array,
   type ArrayLike,
+  type DTypeAndDevice,
   DTypeShapeAndDevice,
   eye,
   fudgeArray,
   full,
   fullLike as fullLikeTracer,
+  geomspace,
   identity,
   linspace,
   logspace,
@@ -56,6 +58,7 @@ export {
   DType,
   eye,
   full,
+  geomspace,
   identity,
   linspace,
   logspace,
@@ -310,9 +313,44 @@ export function size(a: ArrayLike, axis?: number): number {
   return axis === undefined ? iprod(s) : s[axis];
 }
 
+/**
+ * Return true if the input is a scalar.
+ *
+ * Like JAX (and unlike NumPy), this treats zero-dimensional arrays as
+ * scalars. Returns true for numbers, booleans, and 0-dimensional arrays,
+ * and false for any other value. Does not consume array reference.
+ */
+export function isscalar(element: unknown): boolean {
+  if (element instanceof core.Tracer) return element.ndim === 0;
+  return typeof element === "number" || typeof element === "boolean";
+}
+
 /** Convert an array to a specified dtype. */
 export function astype(a: ArrayLike, dtype: DType): Array {
   return fudgeArray(a).astype(dtype);
+}
+
+/**
+ * Return the dtype resulting from applying type promotion rules to the
+ * arguments, which may be arrays, JS numbers or booleans, or dtypes.
+ *
+ * Weakly typed values (e.g., JS numbers) only affect the result when every
+ * argument is weakly typed, following the same rules as `promoteTypes()`.
+ * Does not consume array references.
+ */
+export function resultType(...args: (ArrayLike | DType)[]): DType {
+  if (args.length === 0)
+    throw new TypeError("resultType requires at least one argument");
+  const avals = args.map((x) => {
+    if (typeof x === "string") {
+      if (!Object.values(DType).includes(x))
+        throw new TypeError(`resultType: invalid dtype '${x}'`);
+      return new core.ShapedArray([], x, false);
+    }
+    const { dtype, weakType } = core.getAval(x);
+    return new core.ShapedArray([], dtype, weakType);
+  });
+  return avals.reduce((a, b) => core.promoteAvals(a, b)).dtype;
 }
 
 /** Sum of the elements of the array over a given axis, or axes. */
@@ -516,31 +554,68 @@ export function argmax(
   return length.sub(max(idx, axis, opts));
 }
 
+/**
+ * Direct O(n^2) cumulative reduction of the last axis, by a masked reduction.
+ * The diagonal offset `k` selects an inclusive (0) or exclusive (-1) scan.
+ */
+function cumulativeQuadratic(
+  op: AluOp.Add | AluOp.Mul,
+  a: Array,
+  padValue: number,
+  k: number = 0,
+): Array {
+  const n = a.shape[a.ndim - 1];
+  a = core.broadcast(a, a.shape.concat(n), [-2]) as Array;
+  return core.reduce(
+    where(tri(n, n, k, { dtype: bool }), a, padValue),
+    op,
+    -1,
+  ) as Array;
+}
+
 function cumulativeHelper(
-  op: (x: Array) => Array,
+  op: AluOp.Add | AluOp.Mul,
   a: ArrayLike,
   axis: number,
-  padValue: number,
 ): Array {
+  const padValue = op === AluOp.Add ? 0 : 1; // identity element of `op`
   a = fudgeArray(a);
   if (a.ndim === 0) a = a.reshape([1]);
   axis = checkAxis(axis, a.ndim);
-  const n = a.shape[axis];
   a = moveaxis(a, axis, -1);
-  a = core.broadcast(a, a.shape.concat(n), [-2]) as Array;
-  a = where(tri(n, n, 0, { dtype: bool }), a, padValue);
-  return moveaxis(op(a), -1, axis);
+  const n = a.shape[a.ndim - 1];
+
+  const split = 256; // Chunk size for two-stage reduction
+  if (n <= split * 2) {
+    return moveaxis(cumulativeQuadratic(op, a, padValue), -1, axis);
+  }
+  // Two-stage: scan chunks of `split` independently, then offset each chunk by
+  // an exclusive scan of the chunk totals. Zero-padding the axis up to a
+  // multiple of `split` is safe even for products, since the padded tail only
+  // reaches outputs that are sliced off and the last chunk's unused total.
+  const batch = a.shape.slice(0, -1);
+  const cols = batch.map((): [] => []);
+  const m = Math.ceil(n / split);
+  a = core.pad(a, { [a.ndim - 1]: [0, m * split - n] }) as Array;
+  const scans = cumulativeQuadratic(
+    op,
+    a.reshape([...batch, m, split]),
+    padValue,
+  );
+  const totals = scans.ref.slice(...cols, [], -1);
+  const offsets = cumulativeQuadratic(op, totals, padValue, -1);
+  const out =
+    op === AluOp.Add
+      ? scans.add(offsets.reshape([...batch, m, 1]))
+      : scans.mul(offsets.reshape([...batch, m, 1]));
+  const result = out.reshape([...batch, m * split]).slice(...cols, [0, n]);
+  return moveaxis(result, -1, axis);
 }
 
-/**
- * Cumulative sum of elements along an axis.
- *
- * Currently this function is `O(n^2)`, we'll improve this later on with a
- * two-phase parallel reduction algorithm.
- */
+/** Cumulative sum of elements along an axis. */
 export function cumsum(a: ArrayLike, axis?: number): Array {
   if (axis === undefined) ((a = ravel(a)), (axis = 0));
-  return cumulativeHelper((x) => x.sum(-1), a, axis, 0);
+  return cumulativeHelper(AluOp.Add, a, axis);
 }
 
 /** Alternative API for `jax.numpy.cumsum()`. */
@@ -557,18 +632,13 @@ export function cumulativeSum(
     const pad = zerosLike(x.ref, { shape: x.shape.toSpliced(axis, 1, 1) });
     x = concatenate([pad, x], axis);
   }
-  return cumulativeHelper((x) => x.sum(-1), x, axis, 0);
+  return cumulativeHelper(AluOp.Add, x, axis);
 }
 
-/**
- * Cumulative product of elements along an axis.
- *
- * Currently this function is `O(n^2)`, we'll improve this later on with a
- * two-phase parallel reduction algorithm.
- */
+/** Cumulative product of elements along an axis. */
 export function cumprod(a: ArrayLike, axis?: number): Array {
   if (axis === undefined) ((a = ravel(a)), (axis = 0));
-  return cumulativeHelper((x) => x.prod(-1), a, axis, 1);
+  return cumulativeHelper(AluOp.Mul, a, axis);
 }
 
 /** Alternative API for `jax.numpy.cumprod()`. */
@@ -585,7 +655,59 @@ export function cumulativeProd(
     const pad = onesLike(x.ref, { shape: x.shape.toSpliced(axis, 1, 1) });
     x = concatenate([pad, x], axis);
   }
-  return cumulativeHelper((x) => x.prod(-1), x, axis, 1);
+  return cumulativeHelper(AluOp.Mul, x, axis);
+}
+
+/**
+ * Integrate along the given axis using the composite trapezoidal rule.
+ *
+ * If `x` is provided, the integral is computed with respect to those sample
+ * points. Otherwise, the samples are assumed to be evenly spaced with step
+ * `dx`. Both `x` and `dx` may be arrays that broadcast against `y`.
+ *
+ * @param y - Values to integrate.
+ * @param x - Optional sample points corresponding to the `y` values.
+ * @param opts - Options `dx`, the spacing between samples when `x` is not
+ * given (default 1), and `axis`, the axis to integrate along (default -1).
+ */
+export function trapezoid(
+  y: ArrayLike,
+  x: ArrayLike | null = null,
+  opts?: { dx?: ArrayLike; axis?: number },
+): Array {
+  y = fudgeArray(y);
+  const requestedAxis = opts?.axis ?? -1;
+  const axis = checkAxis(requestedAxis, y.ndim);
+  const sliceAxis = (a: Array, ax: number, s: [number] | Pair): Array =>
+    a.slice(...rep(ax, [] as []), s);
+
+  // Spacing between consecutive sample points, aligned to the last axis of y.
+  let dx: Array;
+  if (x === null) {
+    if (!isFloatDtype(y.dtype)) y = y.astype(float32);
+    dx = fudgeArray(opts?.dx ?? 1);
+    if (dx.ndim > 0) {
+      if (dx.ndim < y.ndim) {
+        dx = dx.reshape(rep(y.ndim - dx.ndim, 1).concat(dx.shape));
+      }
+      dx = moveaxis(dx, requestedAxis, -1);
+    }
+  } else {
+    x = fudgeArray(x);
+    let dtype = promoteTypes(y.dtype, x.dtype);
+    if (!isFloatDtype(dtype)) dtype = float32;
+    if (y.dtype !== dtype) y = y.astype(dtype);
+    if (x.dtype !== dtype) x = x.astype(dtype);
+    const xAxis = x.ndim === 1 ? 0 : checkAxis(requestedAxis, x.ndim);
+    const diff = sliceAxis(x.ref, xAxis, [1]).sub(sliceAxis(x, xAxis, [0, -1]));
+    dx = x.ndim === 1 ? diff : moveaxis(diff, xAxis, -1);
+  }
+
+  y = moveaxis(y, axis, -1);
+  const yAvg = sliceAxis(y.ref, y.ndim - 1, [1])
+    .add(sliceAxis(y, y.ndim - 1, [0, -1]))
+    .mul(0.5);
+  return yAvg.mul(dx).sum(-1);
 }
 
 /**
@@ -697,6 +819,35 @@ export function dsplit(
   return split(a, indicesOrSections, 2);
 }
 
+/**
+ * Split an array into multiple sub-arrays horizontally (column-wise).
+ *
+ * Equivalent to `split()` along axis 1 for arrays of rank 2 or higher, or
+ * along axis 0 for rank-1 arrays.
+ */
+export function hsplit(
+  a: ArrayLike,
+  indicesOrSections: number | number[],
+): Array[] {
+  a = fudgeArray(a);
+  if (a.ndim === 0) {
+    throw new Error("hsplit only works on arrays of 1 or more dimensions");
+  }
+  return split(a, indicesOrSections, a.ndim > 1 ? 1 : 0);
+}
+
+/**
+ * Split an array into multiple sub-arrays vertically (row-wise).
+ *
+ * Equivalent to `split` with `axis=0`.
+ */
+export function vsplit(
+  a: ArrayLike,
+  indicesOrSections: number | number[],
+): Array[] {
+  return split(a, indicesOrSections, 0);
+}
+
 function splitBySizes(a: Array, sizes: number[], axis: number): Array[] {
   // Split in groups of up to 8 outputs, as the transpose rule turns into a
   // Concatenate primitive that has limited input arguments.
@@ -777,6 +928,27 @@ export function stack(xs: ArrayLike[], axis: number = 0): Array {
   const newShape = shapes[0].toSpliced(axis, 0, 1);
   const newArrays = xs.map((x) => fudgeArray(x).reshape(newShape));
   return concatenate(newArrays, axis) as Array;
+}
+
+/**
+ * Split an array into a sequence of arrays along the given axis.
+ *
+ * The `axis` parameter specifies the dimension of the input array to unstack
+ * along; it is removed from the shape of each output array. This is the
+ * inverse operation of `stack()`.
+ */
+export function unstack(x: ArrayLike, axis: number = 0): Array[] {
+  x = fudgeArray(x);
+  if (x.ndim === 0) {
+    throw new Error("unstack requires arrays with rank > 0");
+  }
+  axis = checkAxis(axis, x.ndim);
+  const size = x.shape[axis];
+  if (size === 0) {
+    x.dispose();
+    return [];
+  }
+  return split(x, size, axis).map((part) => squeeze(part, axis));
 }
 
 /**
@@ -1160,6 +1332,14 @@ export function diag(v: ArrayLike, k = 0): Array {
   } else {
     throw new Error("numpy.diag only supports 1D and 2D arrays");
   }
+}
+
+/**
+ * Create a two-dimensional array with the flattened input on the k-th
+ * diagonal.
+ */
+export function diagflat(v: ArrayLike, k = 0): Array {
+  return diag(ravel(v), k);
 }
 
 /**
@@ -1760,14 +1940,114 @@ export function vander(
   }
   const rows = x.shape[0];
   if (n <= 1) return onesLike(x, { shape: [rows, n] });
-  const ones = onesLike(x.ref, { shape: [rows, 1] });
-  const powers = increasing
-    ? arange(1, n, 1, { dtype: x.dtype, device: x.device })
-    : arange(n - 1, 0, -1, { dtype: x.dtype, device: x.device });
-  const powered = power(x.reshape([rows, 1]), powers.reshape([1, n - 1]));
-  return increasing
-    ? concatenate([ones, powered], 1)
-    : concatenate([powered, ones], 1);
+  const tiled = broadcastTo(x.reshape([rows, 1]), [rows, n - 1]);
+  const result = cumulativeProd(tiled, { axis: 1, includeInitial: true });
+  return increasing ? result : flip(result, 1);
+}
+
+/**
+ * Evaluate a polynomial at specific values.
+ *
+ * If `p` has length N, this returns the value
+ * `p[0]*x**(N-1) + p[1]*x**(N-2) + ... + p[N-2]*x + p[N-1]`. Additional
+ * dimensions in `p` are broadcast against `x`.
+ *
+ * @param p - Array of polynomial coefficients along the leading axis, from
+ *   highest degree to the constant term.
+ * @param x - Values at which to evaluate the polynomial.
+ */
+export function polyval(p: ArrayLike, x: ArrayLike): Array {
+  p = fudgeArray(p);
+  x = fudgeArray(x);
+  if (p.ndim === 0) {
+    const ndim = p.ndim;
+    p.dispose();
+    x.dispose();
+    throw new Error(
+      `polyval: coefficients must have at least one dimension, got ${ndim}D`,
+    );
+  }
+  const n = p.shape[0];
+  const powers = vander(ravel(x), { n }).reshape([...x.shape, n]);
+  const coeffs = moveaxis(p, 0, -1);
+  return vecdot(coeffs, powers);
+}
+
+/**
+ * Return the sum of two polynomials.
+ *
+ * The first axis contains polynomial coefficients, ordered from highest degree
+ * to the constant term. Remaining axes are broadcast batch dimensions. The
+ * shorter coefficient axis is aligned with the end of the longer one.
+ */
+export function polyadd(a1: ArrayLike, a2: ArrayLike): Array {
+  a1 = fudgeArray(a1);
+  a2 = fudgeArray(a2);
+  if (a1.ndim === 0 || a2.ndim === 0) {
+    const [ndim1, ndim2] = [a1.ndim, a2.ndim];
+    a1.dispose();
+    a2.dispose();
+    throw new Error(
+      `polyadd: both inputs must be at least 1D arrays, got ${ndim1}D and ${ndim2}D`,
+    );
+  }
+
+  // Match JAX's indexed-update semantics: the input with the longer
+  // coefficient axis determines the result shape. For equal lengths, a1 does.
+  let base = a1;
+  let update = a2;
+  if (a2.shape[0] > a1.shape[0]) [base, update] = [a2, a1];
+
+  const updateShape = [update.shape[0], ...base.shape.slice(1)];
+  try {
+    update = broadcastTo(update, updateShape);
+  } catch (e) {
+    base.dispose();
+    update.dispose();
+    throw e;
+  }
+  const leading = base.shape[0] - update.shape[0];
+  if (leading > 0) update = pad(update, { 0: [leading, 0] });
+  return add(base, update);
+}
+
+/**
+ * Return the difference of two polynomials.
+ *
+ * The first axis contains polynomial coefficients, ordered from highest degree
+ * to the constant term. Remaining axes are broadcast batch dimensions. The
+ * shorter coefficient axis is aligned with the end of the longer one.
+ */
+export function polysub(a1: ArrayLike, a2: ArrayLike): Array {
+  a1 = fudgeArray(a1);
+  a2 = fudgeArray(a2);
+  if (a1.ndim === 0 || a2.ndim === 0) {
+    const [ndim1, ndim2] = [a1.ndim, a2.ndim];
+    a1.dispose();
+    a2.dispose();
+    throw new Error(
+      `polysub: both inputs must be at least 1D arrays, got ${ndim1}D and ${ndim2}D`,
+    );
+  }
+
+  // Match JAX's indexed-update semantics: the input with the longer
+  // coefficient axis determines the result shape. For equal lengths, a1 does.
+  const a2IsLonger = a2.shape[0] > a1.shape[0];
+  let base = a1;
+  let update = a2;
+  if (a2IsLonger) [base, update] = [a2, a1];
+
+  const updateShape = [update.shape[0], ...base.shape.slice(1)];
+  try {
+    update = broadcastTo(update, updateShape);
+  } catch (e) {
+    base.dispose();
+    update.dispose();
+    throw e;
+  }
+  const leading = base.shape[0] - update.shape[0];
+  if (leading > 0) update = pad(update, { 0: [leading, 0] });
+  return a2IsLonger ? subtract(update, base) : subtract(base, update);
 }
 
 /**
@@ -1942,6 +2222,48 @@ export function meshgrid(
         ...range(i + 1, xs.length),
       ]) as Array,
   );
+}
+
+/**
+ * Return an array representing the indices of a grid.
+ *
+ * Computes an array where the subarrays contain index values 0, 1, … varying
+ * only along the corresponding axis. The result has shape
+ * `[dimensions.length, ...dimensions]`.
+ *
+ * If `sparse` is set, returns one array per dimension instead, each with shape
+ * 1 in all dimensions except its own.
+ */
+export function indices(
+  dimensions: number[],
+  opts?: DTypeAndDevice & { sparse?: false },
+): Array;
+export function indices(
+  dimensions: number[],
+  opts: DTypeAndDevice & { sparse: true },
+): Array[];
+export function indices(
+  dimensions: number[],
+  opts: DTypeAndDevice & { sparse: boolean },
+): Array | Array[];
+export function indices(
+  dimensions: number[],
+  { dtype, device, sparse }: DTypeAndDevice & { sparse?: boolean } = {},
+): Array | Array[] {
+  dtype = dtype ?? int32;
+  if (dimensions.some((d) => !Number.isInteger(d) || d < 0)) {
+    throw new Error(
+      `indices: dimensions must be non-negative integers, got ${JSON.stringify(dimensions)}`,
+    );
+  }
+  const output = dimensions.map((dim, i) => {
+    const shape = rep(dimensions.length, 1);
+    shape[i] = dim;
+    const x = arange(0, dim, 1, { dtype, device }).reshape(shape);
+    return sparse ? x : broadcastTo(x, dimensions);
+  });
+  if (sparse) return output;
+  return output.length > 0 ? stack(output) : zeros([0], { dtype, device });
 }
 
 /**

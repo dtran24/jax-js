@@ -196,17 +196,17 @@ Most operations behave the same way as they do in JAX.
 | `count_nonzero`       | 🟢      |                                         |
 | `cov`                 | 🟢      |                                         |
 | `cross`               | 🟢      |                                         |
-| `cumprod`             | 🟡      | Quadratic-time                          |
-| `cumsum`              | 🟡      | Quadratic-time                          |
-| `cumulative_prod`     | 🟡      | Quadratic-time                          |
-| `cumulative_sum`      | 🟡      | Quadratic-time                          |
+| `cumprod`             | 🟢      |                                         |
+| `cumsum`              | 🟢      |                                         |
+| `cumulative_prod`     | 🟢      |                                         |
+| `cumulative_sum`      | 🟢      |                                         |
 | `deg2rad`             | 🟢      |                                         |
 | `degrees`             | 🟢      |                                         |
 | `delete`              | 🟠      |                                         |
 | `diag`                | 🟢      |                                         |
 | `diag_indices`        | 🟢      |                                         |
 | `diag_indices_from`   | 🟢      |                                         |
-| `diagflat`            | 🟠      |                                         |
+| `diagflat`            | 🟢      |                                         |
 | `diagonal`            | 🟢      |                                         |
 | `diff`                | 🟠      |                                         |
 | `digitize`            | 🟠      |                                         |
@@ -253,7 +253,7 @@ Most operations behave the same way as they do in JAX.
 | `full`                | 🟢      |                                         |
 | `full_like`           | 🟢      |                                         |
 | `gcd`                 | 🔴      |                                         |
-| `geomspace`           | 🟠      |                                         |
+| `geomspace`           | 🟢      |                                         |
 | `get_printoptions`    | ⚪️      | Python-specific                         |
 | `gradient`            | 🟠      |                                         |
 | `greater`             | 🟢      |                                         |
@@ -265,7 +265,7 @@ Most operations behave the same way as they do in JAX.
 | `histogram_bin_edges` | 🔴      |                                         |
 | `histogram2d`         | 🔴      |                                         |
 | `histogramdd`         | 🔴      |                                         |
-| `hsplit`              | 🟠      | `split` is supported                    |
+| `hsplit`              | 🟢      |                                         |
 | `hstack`              | 🟢      |                                         |
 | `hypot`               | 🟡      | implemented as `sqrt(x^2 + y^2)`        |
 | `i0`                  | 🔴      | transcendental                          |
@@ -273,7 +273,7 @@ Most operations behave the same way as they do in JAX.
 | `iinfo`               | 🟢      |                                         |
 | `imag`                | ⚪️      | complex numbers                         |
 | `index_exp`           | ⚪️      | Python-specific                         |
-| `indices`             | 🟠      |                                         |
+| `indices`             | 🟢      |                                         |
 | `inner`               | 🟢      |                                         |
 | `insert`              | 🟠      |                                         |
 | `interp`              | 🟠      |                                         |
@@ -291,7 +291,7 @@ Most operations behave the same way as they do in JAX.
 | `isposinf`            | 🟢      |                                         |
 | `isreal`              | ⚪️      | complex numbers                         |
 | `isrealobj`           | ⚪️      | complex numbers                         |
-| `isscalar`            | 🟠      |                                         |
+| `isscalar`            | 🟢      |                                         |
 | `issubdtype`          | 🟠      |                                         |
 | `iterable`            | ⚪️      | Python-specific                         |
 | `ix_`                 | ⚪️      | Python-specific                         |
@@ -365,14 +365,14 @@ Most operations behave the same way as they do in JAX.
 | `piecewise`           | 🔴      | `lax.switch` control flow               |
 | `place`               | 🔴      |                                         |
 | `poly`                | 🔴      |                                         |
-| `polyadd`             | 🟠      |                                         |
+| `polyadd`             | 🟢      |                                         |
 | `polyder`             | 🟠      |                                         |
 | `polydiv`             | 🔴      |                                         |
 | `polyfit`             | 🔴      |                                         |
 | `polyint`             | 🟠      |                                         |
 | `polymul`             | 🟠      |                                         |
-| `polysub`             | 🟠      |                                         |
-| `polyval`             | 🟠      |                                         |
+| `polysub`             | 🟢      |                                         |
+| `polyval`             | 🟢      |                                         |
 | `positive`            | 🟢      |                                         |
 | `pow`                 | 🟢      |                                         |
 | `power`               | 🟢      |                                         |
@@ -394,7 +394,7 @@ Most operations behave the same way as they do in JAX.
 | `repeat`              | 🟢      |                                         |
 | `reshape`             | 🟢      |                                         |
 | `resize`              | 🟠      |                                         |
-| `result_type`         | 🟠      | see `promote_types`                     |
+| `result_type`         | 🟢      |                                         |
 | `right_shift`         | 🟢      |                                         |
 | `rint`                | 🟢      |                                         |
 | `roll`                | 🟢      |                                         |
@@ -436,7 +436,7 @@ Most operations behave the same way as they do in JAX.
 | `tensordot`           | 🟢      |                                         |
 | `tile`                | 🟢      |                                         |
 | `trace`               | 🟢      |                                         |
-| `trapezoid`           | 🟠      |                                         |
+| `trapezoid`           | 🟢      |                                         |
 | `transpose`           | 🟢      |                                         |
 | `tri`                 | 🟢      |                                         |
 | `tril`                | 🟢      |                                         |
@@ -457,7 +457,7 @@ Most operations behave the same way as they do in JAX.
 | `unique_values`       | 🔴      | sorting                                 |
 | `unpackbits`          | ⚪️      | no uint8 support                        |
 | `unravel_index`       | 🟠      |                                         |
-| `unstack`             | 🟠      |                                         |
+| `unstack`             | 🟢      |                                         |
 | `unwrap`              | 🔴      |                                         |
 | `vander`              | 🟢      |                                         |
 | `var`                 | 🟢      |                                         |
@@ -465,7 +465,7 @@ Most operations behave the same way as they do in JAX.
 | `vecdot`              | 🟢      |                                         |
 | `vecmat`              | 🟢      |                                         |
 | `vectorize`           | 🟠      |                                         |
-| `vsplit`              | 🟠      | `split` is supported                    |
+| `vsplit`              | 🟢      |                                         |
 | `vstack`              | 🟢      |                                         |
 | `where`               | 🟢      |                                         |
 | `zeros`               | 🟢      |                                         |
@@ -526,7 +526,7 @@ missing some other building blocks like QR decomposition.
 | `matrix_rank`      | 🔴      |                                         |
 | `matrix_transpose` | 🟢      |                                         |
 | `multi_dot`        | 🟢      |                                         |
-| `norm`             | 🟠      |                                         |
+| `norm`             | 🟢      |                                         |
 | `outer`            | 🟢      |                                         |
 | `pinv`             | 🔴      |                                         |
 | `qr`               | 🔴      |                                         |
