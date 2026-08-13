@@ -1639,7 +1639,6 @@ suite.each(devices)("device:%s", (device) => {
 
     test("uses the dtype-rounded period for the default discont", () => {
       // The period rounds to infinity in float32, so its half-period does too.
-      // The finite jump must therefore be left unchanged.
       const result = np.unwrap(
         np.array([0, 3e38], { dtype: np.float32 }),
         null,
