@@ -2251,9 +2251,9 @@ export function unwrap(
   const tail = x.ref.slice(...skip, [1]); // p[1:]
   const dd = tail.ref.sub(x.slice(...skip, [0, -1])); // p[1:] - p[:-1]
 
-  // Compute `ddmod = mod(dd + interval, T) - interval` with Python mod
-  // semantics. The `Mod` primitive matches the sign of x like fmod, so mimic
-  // numpy by adding `T` when the remainder and divisor signs differ.
+  // Compute `ddmod = mod(dd + interval, T) - interval` using Python modulo
+  // semantics. Since `core.mod` follows `fmod`, adjust remainders whose sign
+  // differs from `T`.
   const r = core.mod(dd.ref.add(interval), T) as Array;
   const pymod =
     T >= 0
