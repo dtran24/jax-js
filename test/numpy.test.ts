@@ -864,6 +864,53 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.geomspace()", () => {
+    test("creates a geometric progression", () => {
+      const x = np.geomspace(1, 1000, 4);
+      expect(x.js()).toBeAllclose([1, 10, 100, 1000]);
+    });
+
+    test("supports non-power-of-10 endpoints", () => {
+      const x = np.geomspace(1, 256, 9);
+      expect(x.js()).toBeAllclose([1, 2, 4, 8, 16, 32, 64, 128, 256]);
+    });
+
+    test("supports decreasing sequences", () => {
+      const x = np.geomspace(1000, 1, 4);
+      expect(x.js()).toBeAllclose([1000, 100, 10, 1]);
+    });
+
+    test("supports negative sequences", () => {
+      const x = np.geomspace(-1000, -1, 4);
+      expect(x.js()).toBeAllclose([-1000, -100, -10, -1]);
+    });
+
+    test("handles endpoint=false", () => {
+      const x = np.geomspace(1, 10000, 4, false);
+      expect(x.js()).toBeAllclose([1, 10, 100, 1000]);
+    });
+
+    test("defaults to 50 elements", () => {
+      const x = np.geomspace(1, 10);
+      expect(x.shape).toEqual([50]);
+      const ar = x.js() as number[];
+      expect(ar[0]).toBeCloseTo(1, 5);
+      expect(ar[49]).toBeCloseTo(10, 5);
+    });
+
+    test("supports integer output dtype", () => {
+      const x = np.geomspace(1, 16, 5, true, { dtype: np.int32 });
+      expect(x.dtype).toBe(np.int32);
+      expect(x.js()).toEqual([1, 2, 4, 8, 16]);
+    });
+
+    test("throws on zero or mixed-sign endpoints", () => {
+      expect(() => np.geomspace(0, 10, 5)).toThrow(RangeError);
+      expect(() => np.geomspace(1, 0, 5)).toThrow(RangeError);
+      expect(() => np.geomspace(-1, 10, 5)).toThrow(RangeError);
+    });
+  });
+
   suite("jax.numpy.where()", () => {
     test("computes where", () => {
       const x = np.array([1, 2, 3]);
