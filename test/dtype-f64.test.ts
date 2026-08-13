@@ -76,8 +76,7 @@ suite.each(devices)("device:%s", (device) => {
   });
 
   test("unwrap() matches numpy at a rounding-tie boundary", () => {
-    // The delta here is one ulp below -pi, and numpy's mod rounds it to the
-    // period itself, unwrapping the value to +pi rather than leaving it.
+    // The delta is just below -pi, which makes it wrap to +pi.
     const x = np.array([0, -3.1415926535897936], { dtype: np.float64 });
     const y = np.unwrap(x);
     expect(y.dtype).toBe(np.float64);
