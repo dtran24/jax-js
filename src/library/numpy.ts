@@ -623,6 +623,58 @@ export function cumulativeProd(
   return cumulativeHelper((x) => x.prod(-1), x, axis, 1);
 }
 
+/**
+ * Integrate along the given axis using the composite trapezoidal rule.
+ *
+ * If `x` is provided, the integral is computed with respect to those sample
+ * points. Otherwise, the samples are assumed to be evenly spaced with step
+ * `dx`. Both `x` and `dx` may be arrays that broadcast against `y`.
+ *
+ * @param y - Values to integrate.
+ * @param x - Optional sample points corresponding to the `y` values.
+ * @param opts - Options `dx`, the spacing between samples when `x` is not
+ * given (default 1), and `axis`, the axis to integrate along (default -1).
+ */
+export function trapezoid(
+  y: ArrayLike,
+  x: ArrayLike | null = null,
+  opts?: { dx?: ArrayLike; axis?: number },
+): Array {
+  y = fudgeArray(y);
+  const requestedAxis = opts?.axis ?? -1;
+  const axis = checkAxis(requestedAxis, y.ndim);
+  const sliceAxis = (a: Array, ax: number, s: [number] | Pair): Array =>
+    a.slice(...rep(ax, [] as []), s);
+
+  // Spacing between consecutive sample points, aligned to the last axis of y.
+  let dx: Array;
+  if (x === null) {
+    if (!isFloatDtype(y.dtype)) y = y.astype(float32);
+    dx = fudgeArray(opts?.dx ?? 1);
+    if (dx.ndim > 0) {
+      if (dx.ndim < y.ndim) {
+        dx = dx.reshape(rep(y.ndim - dx.ndim, 1).concat(dx.shape));
+      }
+      dx = moveaxis(dx, requestedAxis, -1);
+    }
+  } else {
+    x = fudgeArray(x);
+    let dtype = promoteTypes(y.dtype, x.dtype);
+    if (!isFloatDtype(dtype)) dtype = float32;
+    if (y.dtype !== dtype) y = y.astype(dtype);
+    if (x.dtype !== dtype) x = x.astype(dtype);
+    const xAxis = x.ndim === 1 ? 0 : checkAxis(requestedAxis, x.ndim);
+    const diff = sliceAxis(x.ref, xAxis, [1]).sub(sliceAxis(x, xAxis, [0, -1]));
+    dx = x.ndim === 1 ? diff : moveaxis(diff, xAxis, -1);
+  }
+
+  y = moveaxis(y, axis, -1);
+  const yAvg = sliceAxis(y.ref, y.ndim - 1, [1])
+    .add(sliceAxis(y, y.ndim - 1, [0, -1]))
+    .mul(0.5);
+  return yAvg.mul(dx).sum(-1);
+}
+
 /** Reverse the elements in an array along the given axes. */
 export function flip(x: ArrayLike, axis: core.Axis = null): Array {
   const nd = ndim(x);
