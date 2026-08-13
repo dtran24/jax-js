@@ -292,6 +292,58 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.ediff1d()", () => {
+    test("computes consecutive differences", () => {
+      const x = np.array([1, 2, 4, 7, 0]);
+      expect(np.ediff1d(x).js()).toEqual([1, 2, 3, -7]);
+    });
+
+    test("flattens the input array", () => {
+      const x = np.array([
+        [1, 2, 4],
+        [1, 6, 24],
+      ]);
+      expect(np.ediff1d(x).js()).toEqual([1, 2, -3, 5, 18]);
+    });
+
+    test("prepends toBegin and appends toEnd", () => {
+      const x = np.array([1, 2, 4, 7, 0]);
+      const y = np.ediff1d(x, { toBegin: -99, toEnd: np.array([88, 99]) });
+      expect(y.js()).toEqual([-99, 1, 2, 3, -7, 88, 99]);
+    });
+
+    test("casts toBegin and toEnd to the input dtype", () => {
+      const x = np.arange(4); // int32
+      const y = np.ediff1d(x, { toBegin: -99.5, toEnd: np.array([1.5, 2.5]) });
+      expect(y.dtype).toBe(np.int32);
+      expect(y.js()).toEqual([-99, 1, 1, 1, 1, 2]);
+    });
+
+    test("returns an empty array for scalar and single-element inputs", () => {
+      expect(np.ediff1d(5).js()).toEqual([]);
+      expect(np.ediff1d(np.array([5])).js()).toEqual([]);
+      expect(np.ediff1d(np.zeros([0])).js()).toEqual([]);
+    });
+
+    test("handles toBegin and toEnd with an empty difference", () => {
+      const y = np.ediff1d(np.array([5]), { toBegin: 1, toEnd: 2 });
+      expect(y.js()).toEqual([1, 2]);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) =>
+        np.ediff1d(x, { toBegin: 0, toEnd: np.array([10]) }),
+      );
+      expect(f(np.array([1, 2, 4, 7])).js()).toEqual([0, 1, 2, 3, 10]);
+    });
+
+    test("works with grad", () => {
+      const f = (x: np.Array) => np.ediff1d(x).sum();
+      const g = grad(f)(np.array([1.0, 2.0, 4.0]));
+      expect(g.js()).toEqual([-1, 0, 1]);
+    });
+  });
+
   suite("jax.numpy.trapezoid()", () => {
     test("integrates with default unit spacing", () => {
       const y = np.array([1, 2, 3]);
