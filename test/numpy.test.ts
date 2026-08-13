@@ -1607,8 +1607,7 @@ suite.each(devices)("device:%s", (device) => {
   });
 
   suite("jax.numpy.unwrap()", () => {
-    test("unwraps phase jumps larger than pi", () => {
-      // Mirrors the example from the numpy docs.
+    test("unwraps phase jumps larger than pi, using the NumPy docs example", () => {
       const phase = np.array([
         0,
         Math.PI / 4,
