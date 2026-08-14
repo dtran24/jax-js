@@ -181,12 +181,11 @@ suite.each(devices)("device:%s", (device) => {
 
   suite("jax.nn.log1mexp()", () => {
     test("computes log(1 - exp(-x)) on both sides of log(2)", () => {
-      const x = np.array([0.1, 0.5, 1, 2, 5, 10]);
-      const y = nn.log1mexp(x);
-      expect(y).toBeAllclose([
-        -2.35216846, -0.93275213, -0.45867515, -0.14541346, -0.00676075,
-        -0.0000454,
-      ]);
+      const values = [0.1, 0.5, 1, 2, 5, 10];
+      const expected = values.map((x) =>
+        x < Math.LN2 ? Math.log(-Math.expm1(-x)) : Math.log1p(-Math.exp(-x)),
+      );
+      expect(nn.log1mexp(np.array(values))).toBeAllclose(expected);
     });
 
     test("log(2) is a fixed point", () => {

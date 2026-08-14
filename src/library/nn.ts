@@ -17,7 +17,6 @@ import {
   log1p,
   max,
   maximum,
-  minimum,
   negative,
   onesLike,
   reciprocal,
@@ -369,72 +368,10 @@ export function logmeanexp(
  * https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
  */
 export const log1mexp = jit(function log1mexp(x: Array): Array {
-  // expm1() and log1p() are currently implemented as the numerically naive
-  // expressions exp(x) - 1 and log(1 + x), respectively. Use series in the
-  // ranges where those expressions lose precision.
-
-  // These cutoff values are hand-picked; nearby values would work as well.
-  const smallCutoff = 0.1;
-  const largeCutoff = 1.75;
-
-  // log(1 - exp(-x)) = log(x) + log((1 - exp(-x)) / x).
-  const seriesX = clip(x.ref, 0, smallCutoff);
-  const seriesX2 = square(seriesX.ref);
-  // Evaluate through x^10 / 12! using Horner's method. For x <= 0.1,
-  // omitted terms are below floating-point precision.
-  const smallCorrection = seriesX2.ref
-    .mul(1 / 479001600)
-    .sub(1 / 9676800)
-    .mul(seriesX2.ref)
-    .add(1 / 181440)
-    .mul(seriesX2.ref)
-    .sub(1 / 2880)
-    .mul(seriesX2.ref)
-    .add(1 / 24)
-    .mul(seriesX2)
-    .sub(seriesX.mul(0.5));
-  const small = log(x.ref).add(smallCorrection);
-
-  const expNegX = exp(negative(x.ref));
-  const middle = log1p(negative(expNegX.ref));
-
-  // For y = exp(-x), -log(1 - y) / y = 1 + y/2 + y^2/3 + ...
-  const seriesY = minimum(expNegX, 0.25);
-  // Evaluate through y^14 / 14 using Horner's method. In this range,
-  // omitted terms are below float32 precision.
-  const log1pRatio = seriesY.ref
-    .mul(1 / 14)
-    .add(1 / 13)
-    .mul(seriesY.ref)
-    .add(1 / 12)
-    .mul(seriesY.ref)
-    .add(1 / 11)
-    .mul(seriesY.ref)
-    .add(1 / 10)
-    .mul(seriesY.ref)
-    .add(1 / 9)
-    .mul(seriesY.ref)
-    .add(1 / 8)
-    .mul(seriesY.ref)
-    .add(1 / 7)
-    .mul(seriesY.ref)
-    .add(1 / 6)
-    .mul(seriesY.ref)
-    .add(1 / 5)
-    .mul(seriesY.ref)
-    .add(1 / 4)
-    .mul(seriesY.ref)
-    .add(1 / 3)
-    .mul(seriesY.ref)
-    .add(1 / 2)
-    .mul(seriesY.ref)
-    .add(1);
-  const large = negative(seriesY.mul(log1pRatio));
-
   return where(
-    x.ref.less(smallCutoff),
-    small,
-    where(x.ref.less(largeCutoff), middle, large),
+    x.ref.lessEqual(Math.LN2),
+    log(negative(expm1(negative(x.ref)))),
+    log1p(negative(exp(negative(x)))),
   );
 });
 

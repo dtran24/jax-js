@@ -2707,14 +2707,62 @@ export function log10(x: ArrayLike): Array {
 
 /** Calculate `exp(x) - 1` element-wise. */
 export function expm1(x: ArrayLike): Array {
-  // TODO: This isn't actually higher precision than just exp(x)-1 right now.
-  return exp(x).sub(1);
+  x = fudgeArray(x);
+  if (!isFloatDtype(x.dtype)) x = x.astype(DType.Float32);
+
+  const cutoff = x.dtype === DType.Float64 ? 0.01 : 0.1;
+  const useSeries = absolute(x.ref).lessEqual(cutoff);
+  const seriesX = clip(x.ref, -cutoff, cutoff);
+  // Evaluate through x^7 using Horner's method. At the cutoff, omitted terms
+  // are below the dtype's precision.
+  const series = seriesX.ref
+    .mul(1 / 5040)
+    .add(1 / 720)
+    .mul(seriesX.ref)
+    .add(1 / 120)
+    .mul(seriesX.ref)
+    .add(1 / 24)
+    .mul(seriesX.ref)
+    .add(1 / 6)
+    .mul(seriesX.ref)
+    .add(1 / 2)
+    .mul(seriesX.ref)
+    .add(1)
+    .mul(seriesX);
+  return where(useSeries, series, exp(x).sub(1));
 }
 
 /** Calculate the natural logarithm of `1 + x` element-wise. */
 export function log1p(x: ArrayLike): Array {
-  // TODO: This isn't actually higher precision than just log(1+x) right now.
-  return log(add(1, x));
+  x = fudgeArray(x);
+  if (!isFloatDtype(x.dtype)) x = x.astype(DType.Float32);
+
+  const cutoff = x.dtype === DType.Float64 ? 0.01 : 0.2;
+  const useSeries = absolute(x.ref).lessEqual(cutoff);
+  const seriesX = clip(x.ref, -cutoff, cutoff);
+  // Evaluate through x^10 using Horner's method. At the cutoff, omitted terms
+  // are below the dtype's precision.
+  const series = seriesX.ref
+    .mul(-1 / 10)
+    .add(1 / 9)
+    .mul(seriesX.ref)
+    .sub(1 / 8)
+    .mul(seriesX.ref)
+    .add(1 / 7)
+    .mul(seriesX.ref)
+    .sub(1 / 6)
+    .mul(seriesX.ref)
+    .add(1 / 5)
+    .mul(seriesX.ref)
+    .sub(1 / 4)
+    .mul(seriesX.ref)
+    .add(1 / 3)
+    .mul(seriesX.ref)
+    .sub(1 / 2)
+    .mul(seriesX.ref)
+    .add(1)
+    .mul(seriesX);
+  return where(useSeries, series, log(x.add(1)));
 }
 
 /**
