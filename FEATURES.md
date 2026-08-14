@@ -225,7 +225,7 @@ Most operations behave the same way as they do in JAX.
 | `exp`                 | 🟢      |                                         |
 | `exp2`                | 🟢      |                                         |
 | `expand_dims`         | 🟢      |                                         |
-| `expm1`               | 🟡      | implemented as `exp(x)-1`               |
+| `expm1`               | 🟢      |                                         |
 | `extract`             | 🔴      |                                         |
 | `eye`                 | 🟢      |                                         |
 | `fabs`                | ⚪️      | use `abs`                               |
@@ -307,7 +307,7 @@ Most operations behave the same way as they do in JAX.
 | `load`                | ⚪️      | file I/O                                |
 | `log`                 | 🟢      |                                         |
 | `log10`               | 🟢      |                                         |
-| `log1p`               | 🟡      | implemented as `log(1+x)`               |
+| `log1p`               | 🟢      |                                         |
 | `log2`                | 🟢      |                                         |
 | `logaddexp`           | 🟢      |                                         |
 | `logaddexp2`          | 🟢      |                                         |
