@@ -458,7 +458,7 @@ Most operations behave the same way as they do in JAX.
 | `unpackbits`          | ⚪️      | no uint8 support                        |
 | `unravel_index`       | 🟠      |                                         |
 | `unstack`             | 🟢      |                                         |
-| `unwrap`              | 🔴      |                                         |
+| `unwrap`              | 🟢      |                                         |
 | `vander`              | 🟢      |                                         |
 | `var`                 | 🟢      |                                         |
 | `vdot`                | 🟢      |                                         |
