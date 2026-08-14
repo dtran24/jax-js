@@ -2610,6 +2610,24 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.expm1()", () => {
+    test("remains accurate for small inputs", () => {
+      const values = [
+        -1, -0.1, -0.01, -1e-4, -1e-8, 0, 1e-8, 1e-4, 0.01, 0.1, 1,
+      ];
+      expect(np.expm1(np.array(values))).toBeAllclose(values.map(Math.expm1), {
+        rtol: 2e-5,
+        atol: 0,
+      });
+    });
+
+    test("has the correct gradient", () => {
+      const values = [-0.1, -0.001, 0, 0.001, 0.1];
+      const dx = grad((x: np.Array) => np.expm1(x).sum())(np.array(values));
+      expect(dx).toBeAllclose(values.map(Math.exp));
+    });
+  });
+
   suite("jax.numpy.log()", () => {
     test("computes element-wise natural logarithm", () => {
       const x = np.array([1, Math.E, Math.E ** 2]);
@@ -2646,6 +2664,24 @@ suite.each(devices)("device:%s", (device) => {
         Math.log10(4),
         Math.log10(8),
       ]);
+    });
+  });
+
+  suite("jax.numpy.log1p()", () => {
+    test("remains accurate for small inputs", () => {
+      const values = [
+        -0.9, -0.2, -0.1, -0.01, -1e-4, -1e-8, 0, 1e-8, 1e-4, 0.01, 0.1, 0.2, 1,
+      ];
+      expect(np.log1p(np.array(values))).toBeAllclose(values.map(Math.log1p), {
+        rtol: 2e-5,
+        atol: 0,
+      });
+    });
+
+    test("has the correct gradient", () => {
+      const values = [-0.5, -0.001, 0, 0.001, 0.5];
+      const dx = grad((x: np.Array) => np.log1p(x).sum())(np.array(values));
+      expect(dx).toBeAllclose(values.map((x) => 1 / (1 + x)));
     });
   });
 
