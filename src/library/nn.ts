@@ -380,6 +380,8 @@ export const log1mexp = jit(function log1mexp(x: Array): Array {
   // log(1 - exp(-x)) = log(x) + log((1 - exp(-x)) / x).
   const seriesX = clip(x.ref, 0, smallCutoff);
   const seriesX2 = square(seriesX.ref);
+  // Evaluate through x^10 / 12! using Horner's method; for x <= 0.1,
+  // omitted terms are below floating-point precision.
   const smallCorrection = seriesX2.ref
     .mul(1 / 479001600)
     .sub(1 / 9676800)
