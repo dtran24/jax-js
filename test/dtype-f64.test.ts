@@ -32,6 +32,23 @@ suite.each(devices)("device:%s", (device) => {
     expect(a.js()).toEqual([1.5, 2.5, 3.5]);
   });
 
+  test("signbit() distinguishes f64 signed zero", () => {
+    const x = np.array([-1.5, -0, 0, 1.5], { dtype: np.float64 });
+    expect(np.signbit(x).js()).toEqual([true, true, false, false]);
+  });
+
+  test("signbit() preserves the sign of f64 NaN", () => {
+    // JS may canonicalize f64 NaNs on the CPU backend.
+    if (device === "cpu") return;
+    const values = new Float64Array(2);
+    // Write the NaNs as raw bits, since float writes may canonicalize NaN.
+    const bits = new BigUint64Array(values.buffer);
+    bits[0] = 0xfff8000000000000n; // -NaN
+    bits[1] = 0x7ff8000000000000n; // NaN
+    const x = np.array(values);
+    expect(np.signbit(x).js()).toEqual([true, false]);
+  });
+
   test("jit of f64 calculation", () => {
     const f = jit((x: np.Array) => np.sum(x.ref.mul(x)));
     expect(f(np.arange(10).astype(np.float64))).toBeAllclose(285);
@@ -73,5 +90,13 @@ suite.each(devices)("device:%s", (device) => {
     await a.blockUntilReady();
     const b: number = await a.ref.slice(1).sub(a.slice(0)).jsAsync();
     expect(b).toBeCloseTo(1e-15, 15);
+  });
+
+  test("unwrap() matches numpy at a rounding-tie boundary", () => {
+    // The delta is just below -pi, which makes it wrap to +pi.
+    const x = np.array([0, -3.1415926535897936], { dtype: np.float64 });
+    const y = np.unwrap(x);
+    expect(y.dtype).toBe(np.float64);
+    expect(y.ref.dataSync()[1]).toBe(3.1415926535897927);
   });
 });
