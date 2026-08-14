@@ -183,14 +183,10 @@ suite.each(devices)("device:%s", (device) => {
     test("computes log(1 - exp(-x)) on both sides of log(2)", () => {
       const x = np.array([0.1, 0.5, 1, 2, 5, 10]);
       const y = nn.log1mexp(x);
-      // Loose atol since Wasm loses some precision in log() near 1.
-      expect(y).toBeAllclose(
-        [
-          -2.35216846, -0.93275213, -0.45867515, -0.14541346, -0.00676075,
-          -0.0000454,
-        ],
-        { atol: 1e-4 },
-      );
+      expect(y).toBeAllclose([
+        -2.35216846, -0.93275213, -0.45867515, -0.14541346, -0.00676075,
+        -0.0000454,
+      ]);
     });
 
     test("log(2) is a fixed point", () => {
