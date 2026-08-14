@@ -11,7 +11,7 @@
   import { BookMarkedIcon, FileTextIcon } from "@lucide/svelte";
 
   import DownloadManager from "$lib/common/DownloadManager.svelte";
-  import { type Book, downloadBook } from "./books";
+  import { type Book, bookFromText, downloadBook } from "./books";
   import {
     fromSafetensors,
     type MobileCLIP,
@@ -30,6 +30,7 @@
   const D_EMBED = 512;
 
   let downloadManager: DownloadManager;
+  let fileInput: HTMLInputElement | undefined = $state();
 
   async function downloadClipWeights(): Promise<safetensors.File> {
     if (_weights) return _weights;
@@ -96,6 +97,33 @@
   const runEncoder = jit(vmap(runMobileCLIPTextEncoder, [null, 0]));
 
   async function setupBook(bookId: string) {
+    await runSetup(() => downloadBook(bookId));
+  }
+
+  async function setupBookFromFile(file: File) {
+    await runSetup(async () => {
+      const text = await file.text();
+      const title = file.name.replace(/\.[^./]+$/, "");
+      const uploaded = bookFromText(title, text);
+      if (uploaded.chapters[0].excerpts.length === 0) {
+        throw new Error("No usable text found in file");
+      }
+      return uploaded;
+    });
+  }
+
+  async function handleFileChange(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (file) await setupBookFromFile(file);
+  }
+
+  function triggerFileUpload() {
+    fileInput?.click();
+  }
+
+  async function runSetup(loadBook: () => Promise<Book>) {
     const devices = await init("webgpu");
     if (!devices.includes("webgpu")) {
       alert(
@@ -110,9 +138,9 @@
 
     isDownloadingData = true;
     try {
-      book = await downloadBook(bookId);
+      book = await loadBook();
     } catch (error: any) {
-      alert("Error downloading book: " + error.message);
+      alert("Error loading book: " + error.message);
       return;
     } finally {
       isDownloadingData = false;
@@ -345,10 +373,34 @@
           <div class="w-full max-w-md">
             <h3 class="font-medium mb-4">Upload your own data</h3>
             <div class="flex flex-col gap-3">
-              <button class="btn" disabled>
+              <input
+                type="file"
+                accept=".txt,text/plain"
+                bind:this={fileInput}
+                onchange={handleFileChange}
+                class="hidden"
+              />
+              <button
+                class="btn"
+                onclick={triggerFileUpload}
+                disabled={isDownloadingWeights || isDownloadingData}
+              >
                 <FileTextIcon size={20} />
-                Coming soon!
+                Upload a text file (.txt)
               </button>
+              <p class="text-xs text-gray-400">
+                The parser works best with plain-prose books like the ones
+                above. Try a
+                <a
+                  href="https://www.gutenberg.org/ebooks/search/?sort_order=downloads"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-gray-600 hover:text-primary underline"
+                >
+                  Project Gutenberg
+                </a>
+                plain text download.
+              </p>
             </div>
           </div>
         </div>

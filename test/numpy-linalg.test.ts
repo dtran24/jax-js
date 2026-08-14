@@ -891,4 +891,150 @@ suite.each(devicesWithLinalg)("device:%s", (device) => {
       expectNorm(batched(), -Infinity, true, [[[3.0]], [[30.0]]], [2, 1, 1]);
     });
   });
+
+  suite("numpy.linalg.norm()", () => {
+    const matrix = () =>
+      np.array([
+        [1.0, 2.0],
+        [3.0, 4.0],
+      ]);
+    const batched = () => np.arange(24).astype(np.float32).reshape([2, 3, 4]);
+
+    test("flattened 2-norm by default", () => {
+      expect(np.linalg.norm(matrix())).toBeAllclose(5.477225575051661);
+      expect(np.linalg.norm(batched())).toBeAllclose(65.75712889109438);
+      const kept = np.linalg.norm(batched(), { keepdims: true });
+      expect(kept.shape).toEqual([1, 1, 1]);
+      expect(kept).toBeAllclose([[[65.75712889109438]]]);
+    });
+
+    test("vector norms for 1D input", () => {
+      const v = () => np.array([3.0, -4.0]);
+      expect(np.linalg.norm(v())).toBeAllclose(5.0);
+      expect(np.linalg.norm(v(), { ord: 1 })).toBeAllclose(7.0);
+      expect(np.linalg.norm(v(), { ord: Infinity })).toBeAllclose(4.0);
+    });
+
+    test("promotes integer and boolean inputs", () => {
+      const integerResult = np.linalg.norm(np.array([3, 0, -4]), { ord: 0 });
+      expect(integerResult.dtype).toBe(np.float32);
+      expect(integerResult).toBeAllclose(2.0);
+
+      const booleanResult = np.linalg.norm(np.array([true, false, true]));
+      expect(booleanResult.dtype).toBe(np.float32);
+      expect(booleanResult).toBeAllclose(Math.sqrt(2));
+    });
+
+    test("vector norm along axis", () => {
+      expect(
+        np.linalg.norm(batched(), { ord: Infinity, axis: -1 }),
+      ).toBeAllclose([
+        [3.0, 7.0, 11.0],
+        [15.0, 19.0, 23.0],
+      ]);
+      expect(np.linalg.norm(batched(), { axis: 1 })).toBeAllclose([
+        [8.94427191, 10.34408043, 11.83215957, 13.37908816],
+        [28.28427125, 29.9833287, 31.68595904, 33.39161571],
+      ]);
+    });
+
+    test("matrix norms for 2D input", () => {
+      expect(np.linalg.norm(matrix(), { ord: "fro" })).toBeAllclose(
+        5.477225575051661,
+      );
+      expect(np.linalg.norm(matrix(), { ord: "f" })).toBeAllclose(
+        5.477225575051661,
+      );
+      expect(np.linalg.norm(matrix(), { ord: 1 })).toBeAllclose(6.0);
+      expect(np.linalg.norm(matrix(), { ord: -1 })).toBeAllclose(4.0);
+      expect(np.linalg.norm(matrix(), { ord: Infinity })).toBeAllclose(7.0);
+      expect(np.linalg.norm(matrix(), { ord: -Infinity })).toBeAllclose(3.0);
+    });
+
+    test("matrix norm over axis pairs", () => {
+      expect(np.linalg.norm(batched(), { axis: [1, 2] })).toBeAllclose([
+        22.4944437584, 61.7899668231,
+      ]);
+      expect(
+        np.linalg.norm(batched(), { ord: Infinity, axis: [0, 2] }),
+      ).toBeAllclose([54.0, 70.0, 86.0]);
+      expect(np.linalg.norm(batched(), { ord: 1, axis: [2, 0] })).toBeAllclose([
+        54.0, 70.0, 86.0,
+      ]);
+      expect(np.linalg.norm(batched(), { ord: -1, axis: [2, 0] })).toBeAllclose(
+        [6.0, 22.0, 38.0],
+      );
+      const kept = np.linalg.norm(batched(), {
+        ord: Infinity,
+        axis: [0, 2],
+        keepdims: true,
+      });
+      expect(kept.shape).toEqual([1, 3, 1]);
+      expect(kept).toBeAllclose([[[54.0], [70.0], [86.0]]]);
+    });
+
+    test("singular value norms", () => {
+      const tol = { rtol: 1e-4, atol: 1e-4 };
+      expect(np.linalg.norm(matrix(), { ord: 2 })).toBeAllclose(
+        5.464985704219043,
+        tol,
+      );
+      expect(np.linalg.norm(matrix(), { ord: -2 })).toBeAllclose(
+        0.36596619062625757,
+        tol,
+      );
+      expect(np.linalg.norm(matrix(), { ord: "nuc" })).toBeAllclose(
+        5.8309518948453,
+        tol,
+      );
+    });
+
+    test("singular value norms, batched", () => {
+      const tol = { rtol: 1e-4, atol: 1e-4 };
+      const a = () =>
+        np.array([
+          [
+            [1.0, 2.0, 0.5],
+            [3.0, 4.0, -1.0],
+          ],
+          [
+            [2.0, -1.0, 0.0],
+            [1.0, 5.0, 2.0],
+          ],
+        ]);
+      expect(np.linalg.norm(a(), { ord: 2, axis: [1, 2] })).toBeAllclose(
+        [5.5123605371, 5.5095335676],
+        tol,
+      );
+      expect(np.linalg.norm(a(), { ord: -2, axis: [1, 2] })).toBeAllclose(
+        [0.9294521555, 2.1552354553],
+        tol,
+      );
+      expect(np.linalg.norm(a(), { ord: "nuc", axis: [1, 2] })).toBeAllclose(
+        [6.4418126926, 7.6647690229],
+        tol,
+      );
+      expect(np.linalg.norm(a(), { ord: 2, axis: [2, 0] })).toBeAllclose(
+        [2.2912878475, 7.0067840776],
+        tol,
+      );
+      const kept = np.linalg.norm(a(), {
+        ord: "nuc",
+        axis: [2, 0],
+        keepdims: true,
+      });
+      expect(kept.shape).toEqual([1, 2, 1]);
+      expect(kept).toBeAllclose([[[4.527355825], [9.634516349]]], tol);
+    });
+
+    test("throws on invalid orders and axes", () => {
+      expect(() =>
+        np.linalg.norm(matrix(), { ord: 3, axis: [0, 1] }),
+      ).toThrow();
+      expect(() => np.linalg.norm(matrix(), { ord: "fro", axis: 0 })).toThrow();
+      expect(() => np.linalg.norm(matrix(), { axis: [0, 0] })).toThrow();
+      expect(() => np.linalg.norm(batched(), { axis: [0, 1, 2] })).toThrow();
+      expect(() => np.linalg.norm(batched(), { ord: 2 })).toThrow();
+    });
+  });
 });

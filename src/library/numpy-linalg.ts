@@ -1,8 +1,9 @@
 import * as lax from "./lax";
 import { triangularSolve } from "./lax-linalg";
 import * as np from "./numpy";
+import { isFloatDtype } from "../alu";
 import { Array, ArrayLike, fudgeArray } from "../frontend/array";
-import { checkAxis, checkSquare, generalBroadcast } from "../utils";
+import { checkAxis, checkSquare, generalBroadcast, range } from "../utils";
 
 /**
  * Compute the Cholesky decomposition of a (batched) positive-definite matrix.
@@ -373,6 +374,92 @@ export function solve(a: ArrayLike, b: ArrayLike): Array {
 export { tensordot } from "./numpy";
 export { trace } from "./numpy";
 export { vecdot } from "./numpy";
+
+/**
+ * Compute the matrix or vector norm of an array.
+ *
+ * The behavior depends on the `axis` argument, matching `jax.numpy.linalg.norm()`:
+ * - If `axis` is null and `ord` is null, computes the 2-norm of the flattened
+ *   array (any rank is allowed).
+ * - If `axis` is null and `ord` is given, the input must be 1D (vector norm)
+ *   or 2D (matrix norm).
+ * - If `axis` is an integer, computes a vector norm over that axis.
+ * - If `axis` is a pair of integers, computes a matrix norm over those axes.
+ *
+ * @param x - Input array.
+ * @param ord - Order of the norm (default: 2-norm for vectors, Frobenius norm for matrices).
+ * @param axis - Axis or pair of axes to reduce over (default: all axes).
+ * @param keepdims - Whether to keep reduced dimensions as size 1.
+ * @returns The norm of `x`, reduced over the given axes.
+ */
+export function norm(
+  x: ArrayLike,
+  {
+    ord = null,
+    axis = null,
+    keepdims = false,
+  }: {
+    ord?: number | "f" | "fro" | "nuc" | null;
+    axis?: number | number[] | null;
+    keepdims?: boolean;
+  } = {},
+): Array {
+  x = fudgeArray(x);
+  if (!isFloatDtype(x.dtype)) x = x.astype(np.float32);
+  const ndim = x.ndim;
+
+  let axes: number[];
+  if (axis === null) {
+    if (ord === null) {
+      // NumPy allows arbitrary rank inputs when `ord` is not specified.
+      return np.sqrt(np.sum(np.square(x), null, { keepdims }));
+    }
+    axes = range(ndim);
+  } else if (typeof axis === "number") {
+    axes = [checkAxis(axis, ndim)];
+  } else {
+    axes = axis.map((a) => checkAxis(a, ndim));
+  }
+
+  if (axes.length === 1) {
+    if (typeof ord === "string")
+      throw new Error(`norm: invalid order '${ord}' for vector norm`);
+    return vectorNorm(x, { ord: ord ?? 2, axis: axes[0], keepdims });
+  } else if (axes.length === 2) {
+    let [rowAxis, colAxis] = axes;
+    if (rowAxis === colAxis)
+      throw new Error(`norm: duplicate axes ${JSON.stringify(axis)}`);
+    if (ord === null || ord === "f" || ord === "fro") {
+      return np.sqrt(np.sum(np.square(x), axes, { keepdims }));
+    } else if (ord === 1 || ord === -1) {
+      const sums = np.sum(np.abs(x), rowAxis, { keepdims });
+      if (!keepdims && colAxis > rowAxis) colAxis -= 1;
+      return ord === 1
+        ? np.max(sums, colAxis, { keepdims })
+        : np.min(sums, colAxis, { keepdims });
+    } else if (ord === Infinity || ord === -Infinity) {
+      const sums = np.sum(np.abs(x), colAxis, { keepdims });
+      if (!keepdims && rowAxis > colAxis) rowAxis -= 1;
+      return ord === Infinity
+        ? np.max(sums, rowAxis, { keepdims })
+        : np.min(sums, rowAxis, { keepdims });
+    } else if (ord === 2 || ord === -2 || ord === "nuc") {
+      // Norms defined in terms of singular values.
+      let y = np.moveaxis(x, rowAxis, -1);
+      y = np.moveaxis(y, colAxis > rowAxis ? colAxis - 1 : colAxis, -1);
+      const s = svdvals(y);
+      const result =
+        ord === 2 ? np.max(s, -1) : ord === -2 ? np.min(s, -1) : np.sum(s, -1);
+      return keepdims ? np.expandDims(result, axes) : result;
+    } else {
+      throw new Error(`norm: invalid order '${ord}' for matrix norm`);
+    }
+  } else {
+    throw new Error(
+      `norm: axis must be null, an integer, or a pair of integers, got ${JSON.stringify(axis)}`,
+    );
+  }
+}
 
 /**
  * Compute the vector norm of an array.

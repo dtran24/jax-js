@@ -14,16 +14,17 @@ import {
   expm1,
   less,
   log,
+  log1p,
   max,
   maximum,
   negative,
   onesLike,
   reciprocal,
+  repeat,
   sqrt,
   square,
   squeeze,
   tanh,
-  tile,
   where,
   zerosLike,
 } from "./numpy";
@@ -357,6 +358,24 @@ export function logmeanexp(
 }
 
 /**
+ * @function
+ * Computes `log(1 - exp(-x))` element-wise, in a numerically stable way.
+ *
+ * This function is undefined for `x < 0`.
+ *
+ * Reference: Martin Mächler, "Accurately Computing log(1 - exp(-|a|))
+ * Assessed by the Rmpfr package", 2012.
+ * https://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf
+ */
+export const log1mexp = jit(function log1mexp(x: Array): Array {
+  return where(
+    x.ref.lessEqual(Math.LN2),
+    log(negative(expm1(negative(x.ref)))),
+    log1p(negative(exp(negative(x)))),
+  );
+});
+
+/**
  * Standardizes input to zero mean and unit variance.
  *
  * By default, this is computed over the last axis. You can pass in a different
@@ -512,8 +531,8 @@ export function dotProductAttention(
         `divisible by number of key/value heads K=${K} for GQA`,
     );
   const G = N / K; // number of query groups
-  key = tile(key, [1, 1, G, 1]);
-  value = tile(value, [1, 1, G, 1]);
+  key = repeat(key, G, 2);
+  value = repeat(value, G, 2);
 
   const scale = opts.scale ?? 1 / Math.sqrt(H);
   let scores = einsum("BLNH,BSNH->BNLS", query, key).mul(scale);

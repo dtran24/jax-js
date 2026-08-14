@@ -179,6 +179,41 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.nn.log1mexp()", () => {
+    test("computes log(1 - exp(-x)) on both sides of log(2)", () => {
+      const values = [0.1, 0.5, 1, 2, 5, 10];
+      const expected = values.map((x) =>
+        x < Math.LN2 ? Math.log(-Math.expm1(-x)) : Math.log1p(-Math.exp(-x)),
+      );
+      expect(nn.log1mexp(np.array(values))).toBeAllclose(expected);
+    });
+
+    test("log(2) is a fixed point", () => {
+      const y = nn.log1mexp(np.array(Math.LN2));
+      expect(y).toBeAllclose(-Math.LN2, { rtol: 1e-6, atol: 0 });
+    });
+
+    test("remains accurate for extreme inputs", () => {
+      const values = [1e-8, 1e-7, 1e-4, 0.1, 2, 10, 20, 50];
+      const expected = values.map((x) =>
+        x < Math.LN2 ? Math.log(-Math.expm1(-x)) : Math.log1p(-Math.exp(-x)),
+      );
+      expect(nn.log1mexp(np.array(values))).toBeAllclose(expected, {
+        rtol: 2e-5,
+        atol: 0,
+      });
+    });
+
+    test("has correct gradient", () => {
+      // d/dx log(1 - exp(-x)) = 1 / expm1(x)
+      const values = [0.05, 0.5, 1, 2, 5];
+      const x = np.array(values);
+      const gradFn = grad((x: np.Array) => nn.log1mexp(x).sum());
+      const gx = gradFn(x);
+      expect(gx).toBeAllclose(values.map((x) => 1 / Math.expm1(x)));
+    });
+  });
+
   suite("jax.nn.standardize()", () => {
     test("standardizes over last axis by default", () => {
       const x = np.array([
@@ -407,6 +442,15 @@ suite.each(devices)("device:%s", (device) => {
 
       const out = nn.dotProductAttention(query, key, value);
       expect(out.shape).toEqual([1, 2, 4, 2]);
+    });
+
+    test("grouped-query attention repeats adjacent key/value heads", () => {
+      const query = np.zeros([1, 1, 4, 1]);
+      const key = np.zeros([1, 1, 2, 1]);
+      const value = np.array([[[[10], [20]]]]);
+
+      const out = nn.dotProductAttention(query, key, value);
+      expect(out).toBeAllclose([[[[10], [10], [20], [20]]]]);
     });
 
     test("multi-query attention (MQA)", () => {
