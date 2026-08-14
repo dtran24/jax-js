@@ -372,6 +372,7 @@ export const log1mexp = jit(function log1mexp(x: Array): Array {
   // expm1() and log1p() currently lower to exp(x) - 1 and log(1 + x),
   // respectively. Use series in the ranges where those expressions lose
   // precision.
+  // These cutoff values are hand-picked; nearby values would work as well.
   const smallCutoff = 0.1;
   const largeCutoff = 1.75;
 
