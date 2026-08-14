@@ -380,7 +380,7 @@ export const log1mexp = jit(function log1mexp(x: Array): Array {
   // log(1 - exp(-x)) = log(x) + log((1 - exp(-x)) / x).
   const seriesX = clip(x.ref, 0, smallCutoff);
   const seriesX2 = square(seriesX.ref);
-  // Evaluate through x^10 / 12! using Horner's method; for x <= 0.1,
+  // Evaluate through x^10 / 12! using Horner's method. For x <= 0.1,
   // omitted terms are below floating-point precision.
   const smallCorrection = seriesX2.ref
     .mul(1 / 479001600)
@@ -400,6 +400,8 @@ export const log1mexp = jit(function log1mexp(x: Array): Array {
 
   // For y = exp(-x), -log(1 - y) / y = 1 + y/2 + y^2/3 + ...
   const seriesY = minimum(expNegX, 0.25);
+  // Evaluate through y^14 / 14 using Horner's method. In this range,
+  // omitted terms are below float32 precision.
   const log1pRatio = seriesY.ref
     .mul(1 / 14)
     .add(1 / 13)
