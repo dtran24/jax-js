@@ -191,7 +191,7 @@ suite.each(devices)("device:%s", (device) => {
 
     test("log(2) is a fixed point", () => {
       const y = nn.log1mexp(np.array(Math.LN2));
-      expect(y.js()).toBeCloseTo(-Math.LN2);
+      expect(y).toBeAllclose(-Math.LN2, { rtol: 1e-7, atol: 0 });
     });
 
     test("remains accurate for extreme inputs", () => {
