@@ -2788,7 +2788,7 @@ export function unwrap(
   const disc = toDtype(discont ?? T / 2);
 
   const skip = rep<[]>(axis, []);
-  const [head, tail] = split(x.ref, [1], axis); // p[0:1], p[1:]
+  const [head, tail] = split(x.ref, [1], axis);
   const dd = tail.ref.sub(x.slice(...skip, [0, -1])); // p[1:] - p[:-1]
 
   // Compute `ddmod = mod(dd + interval, T) - interval` using Python modulo
