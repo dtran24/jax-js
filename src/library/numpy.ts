@@ -658,6 +658,13 @@ export function cumulativeProd(
   return cumulativeHelper(AluOp.Mul, x, axis);
 }
 
+/** Cumulative sum of elements along an axis, treating NaNs as zero. */
+export function nancumsum(a: ArrayLike, axis?: number): Array {
+  a = fudgeArray(a);
+  if (isFloatDtype(a.dtype)) a = where(isnan(a.ref), 0, a);
+  return cumsum(a, axis);
+}
+
 /**
  * Integrate along the given axis using the composite trapezoidal rule.
  *
