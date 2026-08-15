@@ -1488,9 +1488,10 @@ export function append(
  *
  * `obj` selects which entries to remove along `axis`. It can be a single
  * integer, an array of integers (negative values count from the end, and
- * duplicates are only deleted once), or a boolean mask whose length equals the
- * axis size. Since the output shape depends on the index values, `obj` must be
- * static: plain JS numbers or booleans, or a concrete (untraced) `Array`.
+ * duplicates are only deleted once), or a one-dimensional boolean mask whose
+ * length equals the axis size. Since the output shape depends on the index
+ * values, `obj` must be static: plain JS numbers or booleans, or a concrete
+ * (untraced) `Array`.
  *
  * If `axis` is `null` (default), the input array is flattened first. Python
  * slice objects are not supported; pass an explicit array of indices instead.
@@ -1520,6 +1521,15 @@ function delete_(
       throw new Error(`delete: index array must be integers, got ${dtype}`);
     }
     isMask = obj.dtype === bool;
+    if (isMask && (obj.ndim !== 1 || obj.shape[0] !== n)) {
+      const shape = obj.shape;
+      a.dispose();
+      obj.dispose();
+      throw new Error(
+        `delete: boolean mask must be one-dimensional with length ${n} ` +
+          `to match axis ${axis}, got shape ${JSON.stringify(shape)}`,
+      );
+    }
     values = [...obj.dataSync()];
   } else if (typeof obj === "number") {
     isMask = false;

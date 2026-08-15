@@ -4718,6 +4718,21 @@ suite.each(devices)("device:%s", (device) => {
       expect(() => np.delete(np.arange(3), [true, false])).toThrow(
         "boolean mask must have length 3",
       );
+      expect(() =>
+        np.delete(
+          np.arange(4),
+          np.array(
+            [
+              [true, false],
+              [false, true],
+            ],
+            { dtype: np.bool },
+          ),
+        ),
+      ).toThrow("boolean mask must be one-dimensional");
+      expect(() =>
+        np.delete(np.arange(1), np.array(true, { dtype: np.bool })),
+      ).toThrow("boolean mask must be one-dimensional");
       expect(() => np.delete(np.arange(3), np.array([0.5]))).toThrow(
         "must be integers",
       );
