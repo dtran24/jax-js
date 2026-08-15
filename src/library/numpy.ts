@@ -2345,10 +2345,12 @@ export function fromfunction(
     );
   }
   let f = func;
-  for (let i = 0; i < shape.length; i++) {
-    // The last wrap is the outermost vmap, which must map the first index so
-    // that it varies along the leading axis of the output.
-    const inAxes = shape.map((_, j) => (j === shape.length - 1 - i ? 0 : null));
+  for (let loopIndex = 0; loopIndex < shape.length; loopIndex++) {
+    // Wrap the last coordinate first because each vmap adds an outer axis.
+    const mappedIndex = shape.length - 1 - loopIndex;
+    const inAxes = shape.map((_, dimensionIndex) =>
+      dimensionIndex === mappedIndex ? 0 : null,
+    );
     f = vmap(f as any, inAxes) as any;
   }
   return treeMap(
