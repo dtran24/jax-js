@@ -8,6 +8,7 @@ import {
   init,
 } from "./backend";
 import { Array, ArrayLike } from "./frontend/array";
+import { ShapeDtypeStruct } from "./frontend/core";
 import * as jaxprModule from "./frontend/jaxpr";
 import { ClosedJaxpr, Jaxpr, OwnedFunction } from "./frontend/jaxpr";
 import * as jvpModule from "./frontend/jvp";
@@ -44,6 +45,7 @@ export {
   random,
   setDebug,
   scipySpecial,
+  ShapeDtypeStruct,
   tree,
 };
 
@@ -102,6 +104,29 @@ export const makeJaxpr = jaxprModule.makeJaxpr as unknown as <
   jaxpr: ClosedJaxpr;
   treedef: JsTreeDef;
 };
+
+/**
+ * @function
+ * Compute the shape/dtype of `f(...args)` without any FLOPs.
+ *
+ * The arguments may be `Array`s, `ShapeDtypeStruct`s, or scalars, structured
+ * in a JsTree; only their shapes and dtypes are used, and references to any
+ * `Array` arguments are not consumed. The return value has the same structure
+ * as the output of `f`, with each array replaced by a `ShapeDtypeStruct`.
+ *
+ * @example
+ * ```ts
+ * const f = (x: np.Array) => np.matmul(x.ref, x.transpose());
+ * const out = evalShape(f, new ShapeDtypeStruct([3, 5], DType.Float32));
+ * // ShapeDtypeStruct(shape=[3,3], dtype=float32)
+ * ```
+ */
+export const evalShape = jaxprModule.evalShape as <
+  F extends (...args: any[]) => JsTree<Array>,
+>(
+  f: F,
+  ...args: MapJsTree<Parameters<F>, Array, ArrayLike | ShapeDtypeStruct>
+) => MapJsTree<ReturnType<F>, Array, ShapeDtypeStruct>;
 
 /**
  * @function

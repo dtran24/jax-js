@@ -32,6 +32,7 @@ import {
   PrimitiveParams,
   promoteAvals,
   ShapedArray,
+  ShapeDtypeStruct,
   Trace,
   Tracer,
   TracerValue,
@@ -1140,6 +1141,34 @@ export function makeJaxpr(
       treedef: outTree.value,
     };
   };
+}
+
+/**
+ * Compute the shape/dtype of `f(...args)` without any FLOPs.
+ *
+ * The arguments may be `Array`s, `ShapeDtypeStruct`s, or scalars, structured
+ * in a JsTree; only their shapes and dtypes are used, and references to any
+ * `Array` arguments are not consumed. The return value has the same structure
+ * as the output of `f`, with each array replaced by a `ShapeDtypeStruct`.
+ */
+export function evalShape(f: (...args: any[]) => any, ...args: any[]): any {
+  const [leavesIn, inTree] = treeFlatten(args);
+  const avalsIn = leavesIn.map((leaf) =>
+    leaf instanceof ShapeDtypeStruct
+      ? new ShapedArray(leaf.shape.slice(), leaf.dtype, leaf.weakType)
+      : ShapedArray.fromAval(getAval(leaf)),
+  );
+  const avalArgs = treeUnflatten(inTree, avalsIn) as any[];
+  const { jaxpr, treedef } = makeJaxpr(f)(...avalArgs);
+  const outAvals = jaxpr.jaxpr.outs.map((x) => x.aval);
+  jaxpr.dispose();
+  return treeUnflatten(
+    treedef,
+    outAvals.map(
+      (aval) =>
+        new ShapeDtypeStruct(aval.shape.slice(), aval.dtype, aval.weakType),
+    ),
+  );
 }
 
 export function jit<F extends (...args: any[]) => any>(

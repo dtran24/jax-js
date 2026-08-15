@@ -1,4 +1,5 @@
 import {
+  evalShape,
   grad,
   jit,
   jvp,
@@ -6,6 +7,7 @@ import {
   makeJaxpr,
   nn,
   numpy as np,
+  ShapeDtypeStruct,
   tree,
   valueAndGrad,
   vjp,
@@ -644,5 +646,87 @@ suite("jax.jit()", () => {
     expect(s(ar.ref).js()).toEqual(21);
     expect(vmap(s)(ar.ref).js()).toEqual([6, 15]);
     expect(vmap(s, 1)(ar).js()).toEqual([5, 7, 9]);
+  });
+});
+
+suite("jax.evalShape()", () => {
+  test("computes output shape without computation", () => {
+    const f = (x: np.Array) => np.matmul(x.ref, x.transpose());
+    const out = evalShape(f, new ShapeDtypeStruct([3, 5], np.float32));
+    expect(out).toBeInstanceOf(ShapeDtypeStruct);
+    expect(out.shape).toEqual([3, 3]);
+    expect(out.dtype).toBe(np.float32);
+    expect(out.ndim).toBe(2);
+    expect(out.size).toBe(9);
+  });
+
+  test("works on trees of inputs and outputs", () => {
+    const f = (params: { w: np.Array; b: np.Array }, x: np.Array) => ({
+      y: np.dot(x, params.w).add(params.b),
+      z: np.zeros([7]),
+    });
+    const out = evalShape(
+      f,
+      {
+        w: new ShapeDtypeStruct([5, 2], np.float32),
+        b: new ShapeDtypeStruct([2], np.float32),
+      },
+      new ShapeDtypeStruct([5], np.float32),
+    );
+    expect(out.y.shape).toEqual([2]);
+    expect(out.y.dtype).toBe(np.float32);
+    expect(out.z.shape).toEqual([7]);
+    expect(out.z.dtype).toBe(np.float32);
+  });
+
+  test("accepts arrays without consuming them", () => {
+    const x = np.array([
+      [1, 2, 3],
+      [4, 5, 6],
+    ]);
+    const out = evalShape((a: np.Array) => a.sum(), x);
+    expect(out.shape).toEqual([]);
+    expect(out.dtype).toBe(np.float32);
+    expect(x.refCount).toBe(1); // Not consumed by evalShape.
+    x.dispose();
+  });
+
+  test("follows type promotion rules", () => {
+    // Weak scalars do not change the dtype of a strongly-typed array.
+    const out = evalShape(
+      (x: np.Array, y: np.Array) => x.add(y),
+      new ShapeDtypeStruct([4], np.int32),
+      1.5,
+    );
+    expect(out.shape).toEqual([4]);
+    expect(out.dtype).toBe(np.int32);
+
+    const out2 = evalShape(
+      (x: np.Array, y: np.Array) => x.add(y),
+      new ShapeDtypeStruct([4], np.int32),
+      new ShapeDtypeStruct([2, 4], np.float32),
+    );
+    expect(out2.shape).toEqual([2, 4]);
+    expect(out2.dtype).toBe(np.float32);
+  });
+
+  test("composes with grad", () => {
+    const f = (x: np.Array) => x.ref.mul(x).sum();
+    const out = evalShape(grad(f), new ShapeDtypeStruct([3], np.float32));
+    expect(out.shape).toEqual([3]);
+    expect(out.dtype).toBe(np.float32);
+  });
+
+  test("releases closed-over constants", () => {
+    const w = np.array([
+      [1, 2],
+      [3, 4],
+    ]);
+    const out = evalShape(
+      (x: np.Array) => np.matmul(x, w),
+      new ShapeDtypeStruct([3, 2], np.float32),
+    );
+    expect(out.shape).toEqual([3, 2]);
+    expect(() => w.dispose()).toThrowError(ReferenceError);
   });
 });

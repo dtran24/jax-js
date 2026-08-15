@@ -1285,6 +1285,32 @@ export class ShapedArray implements AbstractValue {
   }
 }
 
+/**
+ * A container for the shape and dtype of an array, without the data.
+ *
+ * This is a lightweight stand-in for `Array` in APIs that only operate on
+ * metadata, such as `evalShape()`.
+ */
+export class ShapeDtypeStruct {
+  constructor(
+    readonly shape: number[],
+    readonly dtype: DType,
+    readonly weakType: boolean = false,
+  ) {}
+
+  get ndim(): number {
+    return this.shape.length;
+  }
+
+  get size(): number {
+    return prod(this.shape);
+  }
+
+  toString(): string {
+    return `ShapeDtypeStruct(shape=[${this.shape.join(",")}], dtype=${this.dtype})`;
+  }
+}
+
 export function getAval(x: TracerValue): AbstractValue {
   if (x instanceof Tracer) {
     return x.aval;
