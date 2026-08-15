@@ -2070,6 +2070,108 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.fromfunction()", () => {
+    test("builds a multiplication table, using the JAX docs example", () => {
+      const table = np.fromfunction((i, j) => i.mul(j), [3, 6], {
+        dtype: np.int32,
+      });
+      expect(table.dtype).toBe(np.int32);
+      expect(table.js()).toEqual([
+        [0, 0, 0, 0, 0, 0],
+        [0, 1, 2, 3, 4, 5],
+        [0, 2, 4, 6, 8, 10],
+      ]);
+    });
+
+    test("defaults to float32 indices", () => {
+      const a = np.fromfunction((i, j) => i.add(j), [2, 3]);
+      expect(a.dtype).toBe(np.float32);
+      expect(a.js()).toEqual([
+        [0, 1, 2],
+        [1, 2, 3],
+      ]);
+    });
+
+    test("varies the first index along the leading axis", () => {
+      const a = np.fromfunction((i, j) => i.mul(10).add(j), [2, 3], {
+        dtype: np.int32,
+      });
+      expect(a.js()).toEqual([
+        [0, 1, 2],
+        [10, 11, 12],
+      ]);
+    });
+
+    test("works with one and three dimensions", () => {
+      const a = np.fromfunction((i) => i.mul(2), [4], { dtype: np.int32 });
+      expect(a.js()).toEqual([0, 2, 4, 6]);
+
+      const b = np.fromfunction(
+        (i, j, k) => i.mul(4).add(j.mul(2)).add(k),
+        [2, 2, 2],
+        { dtype: np.int32 },
+      );
+      expect(b.js()).toEqual([
+        [
+          [0, 1],
+          [2, 3],
+        ],
+        [
+          [4, 5],
+          [6, 7],
+        ],
+      ]);
+    });
+
+    test("broadcasts results that ignore an index", () => {
+      const a = np.fromfunction((i, _j) => i, [2, 3], { dtype: np.int32 });
+      expect(a.js()).toEqual([
+        [0, 0, 0],
+        [1, 1, 1],
+      ]);
+    });
+
+    test("non-scalar results have leading dimensions of shape", () => {
+      const a = np.fromfunction((x) => x.add(1).mul(np.arange(3)), [2]);
+      expect(a.shape).toEqual([2, 3]);
+      expect(a.js()).toEqual([
+        [0, 1, 2],
+        [0, 2, 4],
+      ]);
+    });
+
+    test("handles empty and zero-size shapes", () => {
+      expect(np.fromfunction(() => 5, []).js()).toEqual(5);
+      const a = np.fromfunction((i, j) => i.add(j), [0, 2]);
+      expect(a.shape).toEqual([0, 2]);
+    });
+
+    test("rejects invalid shapes", () => {
+      expect(() => np.fromfunction((i) => i, [-1])).toThrow(
+        "non-negative integers",
+      );
+      expect(() => np.fromfunction((i) => i, [1.5])).toThrow(
+        "non-negative integers",
+      );
+    });
+
+    test("works inside jit and grad", () => {
+      const f = jit(() =>
+        np.fromfunction((i, j) => i.add(j), [2, 2], { dtype: np.int32 }),
+      );
+      expect(f().js()).toEqual([
+        [0, 1],
+        [1, 2],
+      ]);
+
+      // sum(x * i for i in 0..2) = 3 * x, so the gradient is 3.
+      const g = grad((x: np.Array) =>
+        np.fromfunction((i) => x.mul(i), [3]).sum(),
+      );
+      expect(g(np.array(2)).js()).toEqual(3);
+    });
+  });
+
   suite("jax.numpy.minimum()", () => {
     test("computes element-wise minimum", () => {
       const x = np.array([1, 2, 3]);

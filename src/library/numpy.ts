@@ -2320,6 +2320,41 @@ export function indices(
 }
 
 /**
+ * Construct an array by executing a function over each coordinate.
+ *
+ * The resulting array has value `func(i, j, ...)` at coordinate `(i, j, ...)`.
+ * As in JAX, this is dispatched via `jax.vmap()` rather than being called on
+ * the full index grid as in NumPy, so `func` logically operates on scalar
+ * index arrays and need not explicitly handle broadcasted inputs.
+ *
+ * If `func` returns a non-scalar array, the output has leading dimensions
+ * `shape` followed by the dimensions of the function's result.
+ *
+ * @param func - Function taking one scalar index array per dimension.
+ * @param shape - Shape of the output array's leading dimensions.
+ */
+export function fromfunction(
+  func: (...indices: Array[]) => ArrayLike,
+  shape: number[],
+  { dtype, device }: DTypeAndDevice = {},
+): Array {
+  dtype = dtype ?? float32;
+  if (shape.some((d) => !Number.isInteger(d) || d < 0)) {
+    throw new Error(
+      `fromfunction: shape must be non-negative integers, got ${JSON.stringify(shape)}`,
+    );
+  }
+  let f = func as (...indices: ArrayLike[]) => ArrayLike;
+  for (let i = 0; i < shape.length; i++) {
+    // The last wrap is the outermost vmap, which must map the first index so
+    // that it varies along the leading axis of the output.
+    const inAxes = shape.map((_, j) => (j === shape.length - 1 - i ? 0 : null));
+    f = vmap(f as any, inAxes) as any;
+  }
+  return fudgeArray(f(...shape.map((s) => arange(0, s, 1, { dtype, device }))));
+}
+
+/**
  * Clip (limit) the values in an array.
  *
  * Given an interval, values outside the interval are clipped to the interval
