@@ -4645,6 +4645,98 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.delete()", () => {
+    test("deletes a single index from a 1D array", () => {
+      const x = np.array([1, 2, 3, 4, 5]);
+      expect(np.delete(x.ref, 2).js()).toEqual([1, 2, 4, 5]);
+      expect(np.delete(x, -1).js()).toEqual([1, 2, 3, 4]);
+    });
+
+    test("flattens the input when axis is omitted", () => {
+      const x = np.array([
+        [1, 2],
+        [3, 4],
+      ]);
+      expect(np.delete(x, 1).js()).toEqual([1, 3, 4]);
+    });
+
+    test("deletes along an axis", () => {
+      const x = np.array([
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9],
+      ]);
+      expect(np.delete(x.ref, 1, 0).js()).toEqual([
+        [1, 2, 3],
+        [7, 8, 9],
+      ]);
+      expect(np.delete(x.ref, [0, 2], 1).js()).toEqual([[2], [5], [8]]);
+      expect(np.delete(x, 0, -1).js()).toEqual([
+        [2, 3],
+        [5, 6],
+        [8, 9],
+      ]);
+    });
+
+    test("handles duplicate and negative indices", () => {
+      const x = np.array([1, 2, 3, 4, 5]);
+      expect(np.delete(x, [0, 0, -1]).js()).toEqual([2, 3, 4]);
+    });
+
+    test("accepts an index array", () => {
+      const x = np.array([10, 20, 30, 40]);
+      const indices = np.array([1, 3], { dtype: np.int32 });
+      expect(np.delete(x, indices).js()).toEqual([10, 30]);
+    });
+
+    test("accepts a boolean mask", () => {
+      const x = np.array([1, 2, 3, 4]);
+      expect(np.delete(x.ref, [true, false, true, false]).js()).toEqual([2, 4]);
+      const mask = np.array([false, true, false, true]);
+      expect(np.delete(x, mask).js()).toEqual([1, 3]);
+    });
+
+    test("deletes nothing for an empty index list", () => {
+      const x = np.array([1, 2, 3]);
+      expect(np.delete(x, []).js()).toEqual([1, 2, 3]);
+    });
+
+    test("can delete every element", () => {
+      const x = np.arange(3);
+      const y = np.delete(x, [0, 1, 2]);
+      expect(y.shape).toEqual([0]);
+      expect(y.js()).toEqual([]);
+
+      const z = np.delete(np.ones([2, 3]), [0, 1], 0);
+      expect(z.shape).toEqual([0, 3]);
+    });
+
+    test("throws on invalid inputs", () => {
+      expect(() => np.delete(np.arange(3), 5)).toThrow("out of bounds");
+      expect(() => np.delete(np.arange(3), -4)).toThrow("out of bounds");
+      expect(() => np.delete(np.arange(3), 1.5)).toThrow("must be integers");
+      expect(() => np.delete(np.arange(3), [true, false])).toThrow(
+        "boolean mask must have length 3",
+      );
+      expect(() => np.delete(np.arange(3), np.array([0.5]))).toThrow(
+        "must be integers",
+      );
+    });
+
+    test("works with jit", () => {
+      const f = jit((x: np.Array) => np.delete(x, 1));
+      expect(f(np.array([1, 2, 3, 4])).js()).toEqual([1, 3, 4]);
+    });
+
+    if (device !== "webgl") {
+      test("works with grad", () => {
+        const x = np.array([1, 2, 3]);
+        const dx = grad((x: np.Array) => np.delete(x, 1).sum())(x);
+        expect(dx.js()).toEqual([1, 0, 1]);
+      });
+    }
+  });
+
   suite("jax.numpy.takeAlongAxis()", () => {
     test("takes values along columns", () => {
       const x = np.array([

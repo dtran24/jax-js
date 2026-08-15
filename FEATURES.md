@@ -202,7 +202,7 @@ Most operations behave the same way as they do in JAX.
 | `cumulative_sum`      | 🟢      |                                         |
 | `deg2rad`             | 🟢      |                                         |
 | `degrees`             | 🟢      |                                         |
-| `delete`              | 🟠      |                                         |
+| `delete`              | 🟢      |                                         |
 | `diag`                | 🟢      |                                         |
 | `diag_indices`        | 🟢      |                                         |
 | `diag_indices_from`   | 🟢      |                                         |

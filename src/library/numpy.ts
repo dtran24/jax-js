@@ -1484,6 +1484,91 @@ export function append(
 }
 
 /**
+ * Return a new array with sub-arrays along an axis deleted.
+ *
+ * `obj` selects which entries to remove along `axis`. It can be a single
+ * integer, an array of integers (negative values count from the end, and
+ * duplicates are only deleted once), or a boolean mask whose length equals the
+ * axis size. Since the output shape depends on the index values, `obj` must be
+ * static: plain JS numbers or booleans, or a concrete (untraced) `Array`.
+ *
+ * If `axis` is `null` (default), the input array is flattened first. Python
+ * slice objects are not supported; pass an explicit array of indices instead.
+ */
+function delete_(
+  arr: ArrayLike,
+  obj: number | number[] | boolean[] | Array,
+  axis: number | null = null,
+): Array {
+  let a = fudgeArray(arr);
+  if (axis === null) {
+    a = ravel(a);
+    axis = 0;
+  }
+  axis = checkAxis(axis, a.ndim);
+  const n = a.shape[axis];
+
+  // Materialize `obj` into concrete JS values, since the output shape of
+  // `delete` depends on the indices themselves.
+  let values: (number | boolean)[];
+  let isMask: boolean;
+  if (obj instanceof Array) {
+    if (isFloatDtype(obj.dtype)) {
+      const dtype = obj.dtype;
+      a.dispose();
+      obj.dispose();
+      throw new Error(`delete: index array must be integers, got ${dtype}`);
+    }
+    isMask = obj.dtype === bool;
+    values = [...obj.dataSync()];
+  } else if (typeof obj === "number") {
+    isMask = false;
+    values = [obj];
+  } else {
+    isMask = obj.length > 0 && obj.every((v) => typeof v === "boolean");
+    values = obj;
+  }
+
+  const remove = rep(n, false);
+  if (isMask) {
+    if (values.length !== n) {
+      a.dispose();
+      throw new Error(
+        `delete: boolean mask must have length ${n} to match axis ${axis}, ` +
+          `got length ${values.length}`,
+      );
+    }
+    for (let i = 0; i < n; i++) remove[i] = Boolean(values[i]);
+  } else {
+    for (const v of values) {
+      if (typeof v !== "number" || !Number.isInteger(v)) {
+        a.dispose();
+        throw new Error(`delete: indices must be integers, got ${v}`);
+      }
+      if (v < -n || v >= n) {
+        a.dispose();
+        throw new Error(
+          `delete: index ${v} is out of bounds for axis ${axis} with size ${n}`,
+        );
+      }
+      remove[v < 0 ? v + n : v] = true;
+    }
+  }
+
+  const keep: number[] = [];
+  for (let i = 0; i < n; i++) {
+    if (!remove[i]) keep.push(i);
+  }
+  if (keep.length === n) return a;
+  if (keep.length === 0) {
+    const index = a.shape.map((_, i): [] | Pair => (i === axis ? [0, 0] : []));
+    return a.slice(...index);
+  }
+  return take(a, array(keep, { dtype: int32, device: a.device }), axis);
+}
+export { delete_ as delete };
+
+/**
  * Take elements from an array along an axis.
  *
  * This is equivalent to advanced indexing with integer indices over that
