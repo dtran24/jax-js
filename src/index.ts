@@ -8,6 +8,7 @@ import {
   init,
 } from "./backend";
 import { Array, ArrayLike } from "./frontend/array";
+import { ShapeDtypeStruct } from "./frontend/core";
 import * as jaxprModule from "./frontend/jaxpr";
 import { ClosedJaxpr, Jaxpr, OwnedFunction } from "./frontend/jaxpr";
 import * as jvpModule from "./frontend/jvp";
@@ -44,6 +45,7 @@ export {
   random,
   setDebug,
   scipySpecial,
+  ShapeDtypeStruct,
   tree,
 };
 
@@ -93,12 +95,17 @@ export const jacfwd = vmapModule.jacfwd as <F extends (x: Array) => Array>(
 /**
  * @function
  * Construct a Jaxpr by dynamically tracing a function with example inputs.
+ *
+ * Arguments may be real arrays, or `ShapeDtypeStruct` values to trace the
+ * function abstractly without allocating array data.
  */
 export const makeJaxpr = jaxprModule.makeJaxpr as unknown as <
   F extends (...args: any[]) => JsTree<Array>,
 >(
   f: F,
-) => (...args: Parameters<F>) => {
+) => (
+  ...args: MapJsTree<Parameters<F>, Array, ArrayLike | ShapeDtypeStruct>
+) => {
   jaxpr: ClosedJaxpr;
   treedef: JsTreeDef;
 };

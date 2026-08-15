@@ -6,12 +6,66 @@ import {
   makeJaxpr,
   nn,
   numpy as np,
+  ShapeDtypeStruct,
   tree,
   valueAndGrad,
   vjp,
   vmap,
 } from "@jax-js/jax";
 import { expect, suite, test } from "vitest";
+
+suite("jax.ShapeDtypeStruct", () => {
+  test("has shape and dtype properties", () => {
+    const s = new ShapeDtypeStruct([2, 3], np.float32);
+    expect(s.shape).toEqual([2, 3]);
+    expect(s.dtype).toBe(np.float32);
+    expect(s.ndim).toBe(2);
+    expect(s.size).toBe(6);
+    expect(s.toString()).toBe("ShapeDtypeStruct(shape=[2, 3], dtype=float32)");
+  });
+
+  test("compares by shape and dtype", () => {
+    const s = new ShapeDtypeStruct([2, 3], np.float32);
+    expect(s.equals(new ShapeDtypeStruct([2, 3], np.float32))).toBe(true);
+    expect(s.equals(new ShapeDtypeStruct([2, 4], np.float32))).toBe(false);
+    expect(s.equals(new ShapeDtypeStruct([2, 3], np.int32))).toBe(false);
+    expect(s.equals(new ShapeDtypeStruct([2, 3, 1], np.float32))).toBe(false);
+  });
+
+  test("rejects invalid shapes", () => {
+    expect(() => new ShapeDtypeStruct([2, -1], np.float32)).toThrow(TypeError);
+    expect(() => new ShapeDtypeStruct([2.5], np.float32)).toThrow(TypeError);
+  });
+
+  test("traces a function abstractly with makeJaxpr", () => {
+    const f = (x: np.Array, y: np.Array) => np.multiply(x.ref.add(2), x).add(y);
+    const { jaxpr } = makeJaxpr(f)(
+      new ShapeDtypeStruct([2, 3], np.float32),
+      new ShapeDtypeStruct([3], np.int32),
+    );
+    expect(jaxpr.toString()).toMatchInlineSnapshot(`
+      "{ lambda a:float32[2,3], b:int32[3] .
+        let c:float32[2,3] = add a 2
+            d:float32[2,3] = mul c a
+            e:float32[2,3] = add d b
+        in ( e ) }"
+    `);
+    expect(jaxpr.consts).toEqual([]);
+  });
+
+  test("works as a leaf in tree arguments", () => {
+    const f = (args: { x: np.Array; y: np.Array }) => args.x.mul(args.y);
+    const { jaxpr } = makeJaxpr(f)({
+      x: new ShapeDtypeStruct([4], np.float32),
+      y: new ShapeDtypeStruct([4], np.float32),
+    });
+    expect(jaxpr.toString()).toMatchInlineSnapshot(`
+      "{ lambda a:float32[4], b:float32[4] .
+        let c:float32[4] = mul a b
+        in ( c ) }"
+    `);
+  });
+});
 
 suite("jax.makeJaxpr()", () => {
   test("tracks a nullary function", () => {

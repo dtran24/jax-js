@@ -33,7 +33,7 @@ In the tables below, we use a color legend to refer to functions in JAX:
 | `jit`                | 🟢      |                                                 |
 | `make_jaxpr`         | 🟢      |                                                 |
 | `eval_shape`         | 🟠      |                                                 |
-| `ShapeDtypeStruct`   | 🟠      |                                                 |
+| `ShapeDtypeStruct`   | 🟢      | pass to `makeJaxpr()` in place of real arrays   |
 | `device_put`         | 🟢      | async-only for performance                      |
 | `device_get`         | ⚪️      | no separate "host" device                       |
 | `default_backend`    | ⚪️      | XLA feature                                     |

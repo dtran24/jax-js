@@ -1285,6 +1285,57 @@ export class ShapedArray implements AbstractValue {
   }
 }
 
+/**
+ * A container for the shape and dtype of an array, without committing to any
+ * array data or allocating memory on a device.
+ *
+ * This is useful for describing the arguments of a function when tracing it
+ * abstractly. For example, you can pass `ShapeDtypeStruct` values to
+ * `makeJaxpr()` in place of real arrays:
+ *
+ * ```ts
+ * const { jaxpr } = makeJaxpr(f)(new ShapeDtypeStruct([2, 3], np.float32));
+ * ```
+ */
+export class ShapeDtypeStruct implements AbstractValue {
+  // Like arrays with an explicit dtype, these values are not weakly typed.
+  readonly weakType = false;
+
+  constructor(
+    readonly shape: number[],
+    readonly dtype: DType,
+  ) {
+    if (!shape.every((d) => Number.isInteger(d) && d >= 0)) {
+      throw new TypeError(
+        `ShapeDtypeStruct: shape must be non-negative integers, got [${shape.join(", ")}]`,
+      );
+    }
+  }
+
+  /** Number of dimensions in the array shape. */
+  get ndim() {
+    return this.shape.length;
+  }
+
+  /** Total number of elements implied by the shape. */
+  get size() {
+    return prod(this.shape);
+  }
+
+  toString() {
+    return `ShapeDtypeStruct(shape=[${this.shape.join(", ")}], dtype=${this.dtype})`;
+  }
+
+  equals(other: ShapeDtypeStruct) {
+    return (
+      this === other ||
+      (this.dtype === other.dtype &&
+        this.shape.length === other.shape.length &&
+        this.shape.every((d, i) => d === other.shape[i]))
+    );
+  }
+}
+
 export function getAval(x: TracerValue): AbstractValue {
   if (x instanceof Tracer) {
     return x.aval;
