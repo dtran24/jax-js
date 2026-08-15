@@ -1291,12 +1291,24 @@ export class ShapedArray implements AbstractValue {
  * This is a lightweight stand-in for `Array` in APIs that only operate on
  * metadata, such as `evalShape()`.
  */
-export class ShapeDtypeStruct {
+export class ShapeDtypeStruct implements AbstractValue {
+  readonly shape: number[];
+
   constructor(
-    readonly shape: number[],
+    shape: readonly number[],
     readonly dtype: DType,
     readonly weakType: boolean = false,
-  ) {}
+  ) {
+    if (!shape.every((d) => Number.isInteger(d) && d >= 0)) {
+      throw new TypeError(
+        `ShapeDtypeStruct: shape must contain non-negative integers, got [${shape.join(", ")}]`,
+      );
+    }
+    if (!Object.values(DType).includes(dtype)) {
+      throw new TypeError(`ShapeDtypeStruct: unknown dtype ${dtype}`);
+    }
+    this.shape = shape.slice();
+  }
 
   get ndim(): number {
     return this.shape.length;
@@ -1308,6 +1320,16 @@ export class ShapeDtypeStruct {
 
   toString(): string {
     return `ShapeDtypeStruct(shape=[${this.shape.join(",")}], dtype=${this.dtype})`;
+  }
+
+  equals(other: ShapeDtypeStruct): boolean {
+    return (
+      this === other ||
+      (this.dtype === other.dtype &&
+        this.weakType === other.weakType &&
+        this.shape.length === other.shape.length &&
+        this.shape.every((d, i) => d === other.shape[i]))
+    );
   }
 }
 

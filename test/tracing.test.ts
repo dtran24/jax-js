@@ -1,4 +1,5 @@
 import {
+  DType,
   evalShape,
   grad,
   jit,
@@ -650,6 +651,39 @@ suite("jax.jit()", () => {
 });
 
 suite("jax.evalShape()", () => {
+  test("validates shape and dtype metadata", () => {
+    const shape = [2, 3];
+    const spec = new ShapeDtypeStruct(shape, np.float32);
+    shape[0] = 9;
+
+    expect(spec.shape).toEqual([2, 3]);
+    expect(spec.equals(new ShapeDtypeStruct([2, 3], np.float32))).toBe(true);
+    expect(spec.equals(new ShapeDtypeStruct([2, 3], np.int32))).toBe(false);
+    expect(spec.equals(new ShapeDtypeStruct([2, 3], np.float32, true))).toBe(
+      false,
+    );
+    expect(() => new ShapeDtypeStruct([2, -1], np.float32)).toThrow(TypeError);
+    expect(() => new ShapeDtypeStruct([2.5], np.float32)).toThrow(TypeError);
+    expect(() => new ShapeDtypeStruct([2], "float128" as DType)).toThrow(
+      TypeError,
+    );
+  });
+
+  test("supports scalar outputs", () => {
+    const out: ShapeDtypeStruct = evalShape(() => 1);
+    expect(out.shape).toEqual([]);
+    expect(out.dtype).toBe(np.float32);
+    expect(out.weakType).toBe(true);
+  });
+
+  test("can reuse shape structs with makeJaxpr", () => {
+    const { jaxpr } = makeJaxpr((x: np.Array) => x.sum())(
+      new ShapeDtypeStruct([2, 3], np.float32),
+    );
+    expect(jaxpr.jaxpr.inBinders[0].aval.shape).toEqual([2, 3]);
+    jaxpr.dispose();
+  });
+
   test("computes output shape without computation", () => {
     const f = (x: np.Array) => np.matmul(x.ref, x.transpose());
     const out = evalShape(f, new ShapeDtypeStruct([3, 5], np.float32));

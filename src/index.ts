@@ -97,10 +97,12 @@ export const jacfwd = vmapModule.jacfwd as <F extends (x: Array) => Array>(
  * Construct a Jaxpr by dynamically tracing a function with example inputs.
  */
 export const makeJaxpr = jaxprModule.makeJaxpr as unknown as <
-  F extends (...args: any[]) => JsTree<Array>,
+  F extends (...args: any[]) => JsTree<ArrayLike>,
 >(
   f: F,
-) => (...args: Parameters<F>) => {
+) => (
+  ...args: MapJsTree<Parameters<F>, Array, ArrayLike | ShapeDtypeStruct>
+) => {
   jaxpr: ClosedJaxpr;
   treedef: JsTreeDef;
 };
@@ -122,11 +124,11 @@ export const makeJaxpr = jaxprModule.makeJaxpr as unknown as <
  * ```
  */
 export const evalShape = jaxprModule.evalShape as <
-  F extends (...args: any[]) => JsTree<Array>,
+  F extends (...args: any[]) => JsTree<ArrayLike>,
 >(
   f: F,
   ...args: MapJsTree<Parameters<F>, Array, ArrayLike | ShapeDtypeStruct>
-) => MapJsTree<ReturnType<F>, Array, ShapeDtypeStruct>;
+) => MapJsTree<ReturnType<F>, ArrayLike, ShapeDtypeStruct>;
 
 /**
  * @function
