@@ -1571,10 +1571,10 @@ export function takeAlongAxis(
  *
  * At each position, the output takes the value of the choice corresponding to
  * the first true condition. Where no condition is true, `defaultValue` is
- * used. Conditions must be boolean arrays, and all entries must be mutually
- * broadcast-compatible.
+ * used. Conditions are converted to boolean arrays, and all entries must be
+ * mutually broadcast-compatible.
  *
- * @param condlist - List of boolean condition arrays.
+ * @param condlist - List of array-like conditions, converted to booleans.
  * @param choicelist - List of arrays to choose from, same length as
  * `condlist`.
  * @param defaultValue - Value used where every condition is false. Default 0.
@@ -1595,7 +1595,7 @@ export function select(
   }
   let output = fudgeArray(defaultValue);
   for (let i = condlist.length - 1; i >= 0; i--) {
-    output = where(condlist[i], choicelist[i], output);
+    output = where(astype(condlist[i], bool), choicelist[i], output);
   }
   return output;
 }

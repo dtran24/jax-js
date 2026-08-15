@@ -1097,6 +1097,15 @@ suite.each(devices)("device:%s", (device) => {
       expect(result.js()).toEqual([0, 0, 2, 3]);
     });
 
+    test("converts numeric conditions to boolean", () => {
+      const result = np.select(
+        [np.array([0, 1, -2]), np.array([1, 0, 0])],
+        [10, 20],
+        30,
+      );
+      expect(result.js()).toEqual([20, 10, 10]);
+    });
+
     test("broadcasts conditions and scalar choices", () => {
       const cond = np.array([
         [true, false],
