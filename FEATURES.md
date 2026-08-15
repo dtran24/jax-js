@@ -245,7 +245,7 @@ Most operations behave the same way as they do in JAX.
 | `frexp`               | 🟢      |                                         |
 | `frombuffer`          | 🟠      |                                         |
 | `fromfile`            | ⚪️      | Python-specific                         |
-| `fromfunction`        | 🟠      |                                         |
+| `fromfunction`        | 🟢      |                                         |
 | `fromiter`            | ⚪️      | Python-specific                         |
 | `frompyfunc`          | ⚪️      | Python-specific                         |
 | `fromstring`          | ⚪️      | Python-specific                         |

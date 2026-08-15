@@ -28,6 +28,7 @@ import * as core from "../frontend/core";
 import { jit } from "../frontend/jaxpr";
 import { moveaxis as moveaxisTracer, vmap } from "../frontend/vmap";
 import { Pair } from "../shape";
+import { type JsTree, type MapJsTree, map as treeMap } from "../tree";
 import {
   checkAxis,
   DEBUG,
@@ -2317,6 +2318,44 @@ export function indices(
   });
   if (sparse) return output;
   return output.length > 0 ? stack(output) : zeros([0], { dtype, device });
+}
+
+/** Construct an array by applying a function over each coordinate. */
+export function fromfunction(
+  func: (...indices: Array[]) => ArrayLike,
+  shape: number[],
+  opts?: DTypeAndDevice,
+): Array;
+export function fromfunction<
+  Tree extends JsTree<ArrayLike>[] | { [key: string]: JsTree<ArrayLike> },
+>(
+  func: (...indices: Array[]) => Tree,
+  shape: number[],
+  opts?: DTypeAndDevice,
+): MapJsTree<Tree, ArrayLike, Array>;
+export function fromfunction(
+  func: (...indices: Array[]) => JsTree<ArrayLike>,
+  shape: number[],
+  { dtype, device }: DTypeAndDevice = {},
+): JsTree<Array> {
+  dtype = dtype ?? float32;
+  if (shape.some((d) => !Number.isInteger(d) || d < 0)) {
+    throw new Error(
+      `fromfunction: shape must be non-negative integers, got ${JSON.stringify(shape)}`,
+    );
+  }
+  let f = func;
+  for (let loopIndex = 0; loopIndex < shape.length; loopIndex++) {
+    const mappedIndex = shape.length - 1 - loopIndex;
+    const inputAxes = shape.map((_, dimensionIndex) =>
+      dimensionIndex === mappedIndex ? 0 : null,
+    );
+    f = vmap(f, inputAxes) as typeof f;
+  }
+  return treeMap(
+    fudgeArray,
+    f(...shape.map((s) => arange(0, s, 1, { dtype, device }))),
+  );
 }
 
 /**
