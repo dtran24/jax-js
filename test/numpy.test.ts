@@ -2860,6 +2860,49 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.nanmax()", () => {
+    test("ignores NaN values", () => {
+      const x = np.array([1, NaN, 4, 2]);
+      expect(np.nanmax(x).js()).toEqual(4);
+    });
+
+    test("returns NaN when all values are NaN", () => {
+      const x = np.array([NaN, NaN, NaN]);
+      expect(np.nanmax(x).js()).toEqual(NaN);
+    });
+
+    test("computes maximum along an axis, with all-NaN slices", () => {
+      const x = np.array([
+        [1, NaN, 3],
+        [NaN, NaN, NaN],
+      ]);
+      expect(np.nanmax(x.ref, 1).js()).toEqual([3, NaN]);
+      expect(np.nanmax(x.ref, 0).js()).toEqual([1, NaN, 3]);
+      expect(np.nanmax(x, 1, { keepdims: true }).js()).toEqual([[3], [NaN]]);
+    });
+
+    test("keeps -Infinity distinct from NaN", () => {
+      const x = np.array([-Infinity, NaN, -5]);
+      expect(np.nanmax(x).js()).toEqual(-5);
+      expect(np.nanmax(np.array([-Infinity, NaN])).js()).toEqual(-Infinity);
+    });
+
+    test("behaves like max for integer arrays", () => {
+      const x = np.array([3, 1, 4, 2], { dtype: np.int32 });
+      const y = np.nanmax(x);
+      expect(y.dtype).toBe(np.int32);
+      expect(y.js()).toEqual(4);
+    });
+
+    test("works inside jit and grad", () => {
+      const f = jit((x: np.Array) => np.nanmax(x));
+      expect(f(np.array([1, NaN, 4, 2])).js()).toEqual(4);
+
+      const dx = grad((x: np.Array) => np.nanmax(x))(np.array([1, NaN, 4, 2]));
+      expect(dx.js()).toEqual([0, 0, 1, 0]); // Gradient is 1 at the maximum
+    });
+  });
+
   suite("jax.numpy.pad()", () => {
     test("pads an array equally", () => {
       const a = np.array([1, 2, 3]);

@@ -399,6 +399,23 @@ export function max(
 }
 
 /**
+ * Return the maximum of array elements along a given axis, ignoring NaNs.
+ *
+ * Slices that contain only NaN values return NaN.
+ */
+export function nanmax(
+  a: ArrayLike,
+  axis: core.Axis = null,
+  opts?: core.ReduceOpts,
+): Array {
+  a = fudgeArray(a);
+  if (!isFloatDtype(a.dtype)) return max(a, axis, opts);
+  const mask = isnan(a.ref);
+  const out = max(where(mask.ref, -Infinity, a), axis, opts);
+  return where(all(mask, axis, opts), NaN, out);
+}
+
+/**
  * Test whether any array element along a given axis evaluates to True.
  *
  * Returns a boolean array with the same shape as `a` with the specified axis
