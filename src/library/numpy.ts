@@ -582,6 +582,7 @@ function cumulativeHelper(
   a = fudgeArray(a);
   if (a.ndim === 0) a = a.reshape([1]);
   axis = checkAxis(axis, a.ndim);
+  if (a.size === 0) return a;
   a = moveaxis(a, axis, -1);
   const n = a.shape[a.ndim - 1];
 

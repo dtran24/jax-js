@@ -320,6 +320,16 @@ suite.each(devices)("device:%s", (device) => {
       expect(() => np.nancumsum(5, 1)).toThrow("out of bounds");
     });
 
+    test("handles empty dimensions", () => {
+      const emptyAxis = np.nancumsum(np.zeros([2, 0]), 1);
+      expect(emptyAxis.shape).toEqual([2, 0]);
+      expect(emptyAxis.js()).toEqual([[], []]);
+
+      const emptyBatch = np.nancumsum(np.zeros([0, 3]), 1);
+      expect(emptyBatch.shape).toEqual([0, 3]);
+      expect(emptyBatch.js()).toEqual([]);
+    });
+
     test("passes through integer arrays", () => {
       const x = np.array([1, 2, 3], { dtype: np.int32 });
       const y = np.nancumsum(x);
