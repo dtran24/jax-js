@@ -3514,10 +3514,53 @@ suite.each(devices)("device:%s", (device) => {
       expect(result.js()).toEqual([6]);
     });
 
+    test("supports an explicit output dtype", () => {
+      const result = np.ravelMultiIndex(
+        [np.array([-1, 2]), np.array([0, 3])],
+        [3, 4],
+        { mode: "wrap", dtype: np.uint32 },
+      );
+      expect(result.dtype).toBe(np.uint32);
+      expect(result.js()).toEqual([8, 11]);
+    });
+
+    test("rejects output dtypes that cannot represent every flat index", () => {
+      expect(() =>
+        np.ravelMultiIndex([np.array([0]), np.array([0])], [65536, 65536]),
+      ).toThrow(/int32 is not large enough/);
+
+      const result = np.ravelMultiIndex(
+        [np.array([65535]), np.array([65535])],
+        [65536, 65536],
+        { dtype: np.uint32 },
+      );
+      expect(result.dtype).toBe(np.uint32);
+      expect(result.js()).toEqual([4294967295]);
+
+      expect(() =>
+        np.ravelMultiIndex([np.array([0]), np.array([0])], [65536, 65537], {
+          dtype: np.uint32,
+        }),
+      ).toThrow(/uint32 is not large enough/);
+    });
+
+    test("ignore mode leaves out-of-bounds indices unchanged", () => {
+      const result = np.ravelMultiIndex(
+        [np.array([-1, 5]), np.array([0, 2])],
+        [3, 4],
+        { mode: "ignore" },
+      );
+      expect(result.js()).toEqual([-4, 22]);
+    });
+
     test("returns a scalar zero for empty inputs", () => {
       const result = np.ravelMultiIndex([], []);
       expect(result.shape).toEqual([]);
       expect(result.js()).toEqual(0);
+
+      const uintResult = np.ravelMultiIndex([], [], { dtype: np.uint32 });
+      expect(uintResult.dtype).toBe(np.uint32);
+      expect(uintResult.js()).toEqual(0);
     });
 
     test("raise mode throws on out-of-bounds entries", () => {
@@ -3562,6 +3605,12 @@ suite.each(devices)("device:%s", (device) => {
       expect(() => np.ravelMultiIndex([np.array([0])], [3, 4])).toThrow(
         /one coordinate array per dimension/,
       );
+    });
+
+    test("throws on a non-integer output dtype", () => {
+      expect(() =>
+        np.ravelMultiIndex([np.array([0])], [1], { dtype: np.float32 }),
+      ).toThrow(/dtype must be int32 or uint32/);
     });
   });
 

@@ -1200,16 +1200,19 @@ export function ravel(a: ArrayLike): Array {
  *
  * The coordinate arrays are broadcast against each other, and each element of
  * the result is the flat index into an array of shape `dims` at the given
- * coordinates. Indices are cast to `int32` (or kept as `uint32`).
+ * coordinates. Indices are cast to `int32` by default, unless all coordinate
+ * arrays are `uint32`.
  *
  * @param multiIndex - Coordinate arrays, one for each dimension of `dims`.
  * @param dims - Shape of the array that the coordinates index into.
  * @param options - Optional settings:
  *   - `mode` - Behavior for out-of-bounds indices: `"raise"` (default),
- *     `"wrap"`, or `"clip"`. Mode `"raise"` needs concrete index values, so it
- *     cannot be used within `jit()` or other transformations.
+ *     `"wrap"`, `"clip"`, or `"ignore"`. Mode `"raise"` needs concrete index
+ *     values, so it cannot be used within `jit()` or other transformations.
  *   - `order` - Treat `dims` as row-major `"C"` (default) or column-major
  *     `"F"`.
+ *   - `dtype` - Output integer type. Defaults to `uint32` when every coordinate
+ *     array is `uint32`, and to `int32` otherwise.
  *
  * @example
  * ```ts
@@ -1221,9 +1224,13 @@ export function ravel(a: ArrayLike): Array {
 export function ravelMultiIndex(
   multiIndex: ArrayLike[],
   dims: number[],
-  options?: { mode?: "raise" | "wrap" | "clip"; order?: "C" | "F" },
+  options?: {
+    mode?: "raise" | "wrap" | "clip" | "ignore";
+    order?: "C" | "F";
+    dtype?: DType;
+  },
 ): Array {
-  const { mode = "raise", order = "C" } = options ?? {};
+  const { mode = "raise", order = "C", dtype } = options ?? {};
   const indices = multiIndex.map(fudgeArray);
   const bail = (message: string): never => {
     for (const index of indices) index.dispose();
@@ -1240,10 +1247,23 @@ export function ravelMultiIndex(
     if (!Number.isInteger(d) || d < 0)
       bail(`dims must be non-negative integers, got ${JSON.stringify(dims)}`);
   }
-  if (mode !== "raise" && mode !== "wrap" && mode !== "clip")
-    bail(`invalid mode ${mode}, expected "raise", "wrap", or "clip"`);
+  if (
+    mode !== "raise" &&
+    mode !== "wrap" &&
+    mode !== "clip" &&
+    mode !== "ignore"
+  )
+    bail(`invalid mode ${mode}, expected "raise", "wrap", "clip", or "ignore"`);
   if (order !== "C" && order !== "F")
     bail(`invalid order ${order}, expected "C" or "F"`);
+  if (dtype !== undefined && dtype !== DType.Int32 && dtype !== DType.Uint32)
+    bail(`dtype must be int32 or uint32, got ${dtype}`);
+
+  const outputDtype =
+    dtype ??
+    (indices.length > 0 && indices.every((i) => i.dtype === DType.Uint32)
+      ? DType.Uint32
+      : DType.Int32);
 
   if (mode === "raise") {
     for (const [index, dim] of zip(indices, dims)) {
@@ -1266,8 +1286,6 @@ export function ravelMultiIndex(
     }
   }
 
-  if (indices.length === 0) return zeros([], { dtype: DType.Int32 });
-
   // The stride of each dimension in the flattened result.
   const strides: number[] = new JsArray(dims.length);
   let stride = 1;
@@ -1276,15 +1294,21 @@ export function ravelMultiIndex(
     strides[j] = stride;
     stride *= dims[j];
   }
+  if (stride - 1 > iinfo(outputDtype).max) {
+    bail(
+      `dtype ${outputDtype} is not large enough to hold a flat index for ` +
+        `dims=${JSON.stringify(dims)}`,
+    );
+  }
+
+  if (indices.length === 0) return zeros([], { dtype: outputDtype });
 
   let result: Array | undefined;
   for (const [k, dim] of dims.entries()) {
     let index = indices[k];
-    if (index.dtype !== DType.Int32 && index.dtype !== DType.Uint32) {
-      index = index.astype(DType.Int32);
-    }
     if (mode === "wrap") index = remainder(index, dim);
     else if (mode === "clip") index = clip(index, 0, dim - 1);
+    if (index.dtype !== outputDtype) index = index.astype(outputDtype);
     const term = index.mul(strides[k]);
     result = result === undefined ? term : result.add(term);
   }
