@@ -329,7 +329,7 @@ Most operations behave the same way as they do in JAX.
 | `min`                 | 🟢      |                                         |
 | `minimum`             | 🟢      |                                         |
 | `mod`                 | ⚪️      | Skipped for clarity, use `remainder()`  |
-| `modf`                | 🟠      |                                         |
+| `modf`                | 🟢      |                                         |
 | `moveaxis`            | 🟢      |                                         |
 | `multiply`            | 🟢      |                                         |
 | `nan_to_num`          | 🟢      |                                         |
