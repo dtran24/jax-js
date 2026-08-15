@@ -2346,7 +2346,6 @@ export function fromfunction(
   }
   let f = func;
   for (let loopIndex = 0; loopIndex < shape.length; loopIndex++) {
-    // Wrap the last coordinate first because each vmap adds an outer axis.
     const mappedIndex = shape.length - 1 - loopIndex;
     const inputAxes = shape.map((_, dimensionIndex) =>
       dimensionIndex === mappedIndex ? 0 : null,
