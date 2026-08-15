@@ -399,7 +399,7 @@ export class Array extends Tracer {
         newShape.push(this.#st.shape[i]);
       }
     }
-    newShape.push(-1);
+    newShape.push(prod(shiftedAxes.map((i) => this.#st.shape[i])));
     return this.#transpose(keptAxes.concat(shiftedAxes)).reshape(newShape);
   }
 

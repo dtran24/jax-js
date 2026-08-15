@@ -409,6 +409,12 @@ export function nanmax(
   opts?: core.ReduceOpts,
 ): Array {
   a = fudgeArray(a);
+  axis = normalizeAxis(axis, a.ndim);
+  if (axis.some((i) => a.shape[i] === 0)) {
+    throw new Error(
+      "zero-size array to reduction operation max which has no identity",
+    );
+  }
   if (!isFloatDtype(a.dtype)) return max(a, axis, opts);
   const mask = isnan(a.ref);
   const out = max(where(mask.ref, -Infinity, a), axis, opts);

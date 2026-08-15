@@ -2894,6 +2894,20 @@ suite.each(devices)("device:%s", (device) => {
       expect(y.js()).toEqual(4);
     });
 
+    test("handles zero-size dimensions", () => {
+      const emptyReduction = np.zeros([0]);
+      expect(() => np.nanmax(emptyReduction)).toThrow("zero-size array");
+      emptyReduction.dispose();
+
+      const x = np.zeros([0, 2]);
+      const y = np.nanmax(x.ref, 1);
+      expect(y.shape).toEqual([0]);
+      expect(y.js()).toEqual([]);
+      const z = np.nanmax(x, 1, { keepdims: true });
+      expect(z.shape).toEqual([0, 1]);
+      expect(z.js()).toEqual([]);
+    });
+
     test("works inside jit and grad", () => {
       const f = jit((x: np.Array) => np.nanmax(x));
       expect(f(np.array([1, NaN, 4, 2])).js()).toEqual(4);
