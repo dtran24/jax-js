@@ -2350,7 +2350,7 @@ export function fromfunction(
     const inputAxes = shape.map((_, dimensionIndex) =>
       dimensionIndex === mappedIndex ? 0 : null,
     );
-    f = vmap(f as any, inputAxes) as any;
+    f = vmap(f, inputAxes) as typeof f;
   }
   return treeMap(
     fudgeArray,
