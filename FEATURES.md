@@ -406,7 +406,7 @@ Most operations behave the same way as they do in JAX.
 | `save`                | ⚪️      | file I/O                                |
 | `savez`               | ⚪️      | file I/O                                |
 | `searchsorted`        | 🔴      | sorting                                 |
-| `select`              | 🟠      |                                         |
+| `select`              | 🟢      |                                         |
 | `set_printoptions`    | ⚪️      | Python-specific                         |
 | `setdiff1d`           | ⚪️      | Python-specific                         |
 | `setxor1d`            | ⚪️      | Python-specific                         |
