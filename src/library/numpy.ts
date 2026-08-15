@@ -2320,20 +2320,7 @@ export function indices(
   return output.length > 0 ? stack(output) : zeros([0], { dtype, device });
 }
 
-/**
- * Construct an array by executing a function over each coordinate.
- *
- * The resulting array has value `func(i, j, ...)` at coordinate `(i, j, ...)`.
- * As in JAX, this is dispatched via `jax.vmap()` rather than being called on
- * the full index grid as in NumPy, so `func` logically operates on scalar
- * index arrays and need not explicitly handle broadcasted inputs.
- *
- * If `func` returns a non-scalar array, the output has leading dimensions
- * `shape` followed by the dimensions of the function's result.
- *
- * @param func - Function taking one scalar index array per dimension.
- * @param shape - Shape of the output array's leading dimensions.
- */
+/** Construct an array by applying a function over each coordinate. */
 export function fromfunction(
   func: (...indices: Array[]) => ArrayLike,
   shape: number[],
