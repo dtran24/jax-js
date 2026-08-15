@@ -387,7 +387,7 @@ Most operations behave the same way as they do in JAX.
 | `rad2deg`             | 🟢      |                                         |
 | `radians`             | 🟢      |                                         |
 | `ravel`               | 🟢      |                                         |
-| `ravel_multi_index`   | 🟠      |                                         |
+| `ravel_multi_index`   | 🟢      |                                         |
 | `real`                | ⚪️      | complex numbers                         |
 | `reciprocal`          | 🟢      |                                         |
 | `remainder`           | 🟢      |                                         |

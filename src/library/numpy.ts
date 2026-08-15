@@ -1195,6 +1195,102 @@ export function ravel(a: ArrayLike): Array {
   return fudgeArray(a).ravel();
 }
 
+/**
+ * Convert a tuple of coordinate arrays into an array of flat indices.
+ *
+ * The coordinate arrays are broadcast against each other, and each element of
+ * the result is the flat index into an array of shape `dims` at the given
+ * coordinates. Indices are cast to `int32` (or kept as `uint32`).
+ *
+ * @param multiIndex - Coordinate arrays, one for each dimension of `dims`.
+ * @param dims - Shape of the array that the coordinates index into.
+ * @param options - Optional settings:
+ *   - `mode` - Behavior for out-of-bounds indices: `"raise"` (default),
+ *     `"wrap"`, or `"clip"`. Mode `"raise"` needs concrete index values, so it
+ *     cannot be used within `jit()` or other transformations.
+ *   - `order` - Treat `dims` as row-major `"C"` (default) or column-major
+ *     `"F"`.
+ *
+ * @example
+ * ```ts
+ * const rows = np.array([3, 6, 6]);
+ * const cols = np.array([4, 5, 1]);
+ * np.ravelMultiIndex([rows, cols], [7, 6]); // => [22, 41, 37]
+ * ```
+ */
+export function ravelMultiIndex(
+  multiIndex: ArrayLike[],
+  dims: number[],
+  options?: { mode?: "raise" | "wrap" | "clip"; order?: "C" | "F" },
+): Array {
+  const { mode = "raise", order = "C" } = options ?? {};
+  const indices = multiIndex.map(fudgeArray);
+  const bail = (message: string): never => {
+    for (const index of indices) index.dispose();
+    throw new Error(`ravelMultiIndex: ${message}`);
+  };
+
+  if (indices.length !== dims.length) {
+    bail(
+      `expected one coordinate array per dimension, got ${indices.length} ` +
+        `coordinate arrays for dims=${JSON.stringify(dims)}`,
+    );
+  }
+  for (const d of dims) {
+    if (!Number.isInteger(d) || d < 0)
+      bail(`dims must be non-negative integers, got ${JSON.stringify(dims)}`);
+  }
+  if (mode !== "raise" && mode !== "wrap" && mode !== "clip")
+    bail(`invalid mode ${mode}, expected "raise", "wrap", or "clip"`);
+  if (order !== "C" && order !== "F")
+    bail(`invalid order ${order}, expected "C" or "F"`);
+
+  if (mode === "raise") {
+    for (const [index, dim] of zip(indices, dims)) {
+      if (!(index instanceof Array)) {
+        bail(
+          `mode "raise" requires concrete index values and cannot be used ` +
+            `within jit() or other transformations; use mode "wrap" or ` +
+            `"clip" instead`,
+        );
+      }
+      for (const value of index.ref.dataSync()) {
+        if (!Number.isInteger(value))
+          bail(`non-integer entry ${value} in coordinates array`);
+        if (value < 0 || value >= dim)
+          bail(
+            `invalid entry ${value} in coordinates array for dimension of ` +
+              `size ${dim}`,
+          );
+      }
+    }
+  }
+
+  if (indices.length === 0) return zeros([], { dtype: DType.Int32 });
+
+  // The stride of each dimension in the flattened result.
+  const strides: number[] = new JsArray(dims.length);
+  let stride = 1;
+  for (let k = 0; k < dims.length; k++) {
+    const j = order === "C" ? dims.length - 1 - k : k;
+    strides[j] = stride;
+    stride *= dims[j];
+  }
+
+  let result: Array | undefined;
+  for (const [k, dim] of dims.entries()) {
+    let index = indices[k];
+    if (index.dtype !== DType.Int32 && index.dtype !== DType.Uint32) {
+      index = index.astype(DType.Int32);
+    }
+    if (mode === "wrap") index = remainder(index, dim);
+    else if (mode === "clip") index = clip(index, 0, dim - 1);
+    const term = index.mul(strides[k]);
+    result = result === undefined ? term : result.add(term);
+  }
+  return result!;
+}
+
 /** Remove one or more length-1 axes from an array. */
 export function squeeze(a: ArrayLike, axis: core.Axis = null): Array {
   const as = shape(a);

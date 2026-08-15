@@ -3435,6 +3435,136 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.ravelMultiIndex()", () => {
+    test("computes flat indices, using the NumPy docs example", () => {
+      const result = np.ravelMultiIndex(
+        [np.array([3, 6, 6]), np.array([4, 5, 1])],
+        [7, 6],
+      );
+      expect(result.dtype).toBe(np.int32);
+      expect(result.js()).toEqual([22, 41, 37]);
+    });
+
+    test("supports column-major order F", () => {
+      const result = np.ravelMultiIndex(
+        [np.array([3, 6, 6]), np.array([4, 5, 1])],
+        [7, 6],
+        { order: "F" },
+      );
+      expect(result.js()).toEqual([31, 41, 13]);
+    });
+
+    test("computes flat indices in three dimensions for both orders", () => {
+      const coords = () => [np.array([1]), np.array([0]), np.array([2])];
+      const resultC = np.ravelMultiIndex(coords(), [2, 3, 4]);
+      expect(resultC.js()).toEqual([14]);
+      const resultF = np.ravelMultiIndex(coords(), [2, 3, 4], { order: "F" });
+      expect(resultF.js()).toEqual([13]);
+    });
+
+    test("broadcasts coordinate arrays together", () => {
+      const cols = np.array([
+        [0, 1],
+        [2, 3],
+      ]);
+      const result = np.ravelMultiIndex([2, cols], [3, 4]);
+      expect(result.shape).toEqual([2, 2]);
+      expect(result.js()).toEqual([
+        [8, 9],
+        [10, 11],
+      ]);
+    });
+
+    test("clip mode clips out-of-bounds indices, using the NumPy docs example", () => {
+      const result = np.ravelMultiIndex(
+        [np.array([3, 6, 6]), np.array([4, 5, 1])],
+        [4, 6],
+        { mode: "clip" },
+      );
+      expect(result.js()).toEqual([22, 23, 19]);
+    });
+
+    test("clip mode clamps negative indices to zero", () => {
+      const result = np.ravelMultiIndex(
+        [np.array([-5, 10]), np.array([2, -1])],
+        [7, 6],
+        { mode: "clip" },
+      );
+      expect(result.js()).toEqual([2, 36]);
+    });
+
+    test("wrap mode wraps indices with Python modulo semantics", () => {
+      const result = np.ravelMultiIndex(
+        [np.array([-1, 8]), np.array([0, 5])],
+        [7, 6],
+        { mode: "wrap" },
+      );
+      expect(result.js()).toEqual([36, 11]);
+    });
+
+    test("keeps uint32 coordinate arrays as uint32", () => {
+      const result = np.ravelMultiIndex(
+        [
+          np.array([1], { dtype: np.uint32 }),
+          np.array([2], { dtype: np.uint32 }),
+        ],
+        [3, 4],
+      );
+      expect(result.dtype).toBe(np.uint32);
+      expect(result.js()).toEqual([6]);
+    });
+
+    test("returns a scalar zero for empty inputs", () => {
+      const result = np.ravelMultiIndex([], []);
+      expect(result.shape).toEqual([]);
+      expect(result.js()).toEqual(0);
+    });
+
+    test("raise mode throws on out-of-bounds entries", () => {
+      expect(() =>
+        np.ravelMultiIndex([np.array([3, 6, 6]), np.array([4, 5, 1])], [4, 6]),
+      ).toThrow(/invalid entry/);
+      expect(() =>
+        np.ravelMultiIndex([np.array([-1]), np.array([0])], [7, 6]),
+      ).toThrow(/invalid entry/);
+    });
+
+    test("raise mode throws on non-integer entries", () => {
+      expect(() =>
+        np.ravelMultiIndex([np.array([1.5]), np.array([0])], [7, 6]),
+      ).toThrow(/non-integer entry/);
+    });
+
+    test("raise mode cannot be used within jit", () => {
+      const f = jit((i: np.Array) =>
+        np.ravelMultiIndex([i, np.array([0])], [3, 4]),
+      );
+      expect(() => f(np.array([1], { dtype: np.int32 }))).toThrow(
+        /use mode "wrap" or "clip" instead/,
+      );
+      f.dispose();
+    });
+
+    test("wrap and clip modes work within jit", () => {
+      const f = jit((i: np.Array) =>
+        np.ravelMultiIndex([i, np.array([1, 3])], [3, 4], { mode: "wrap" }),
+      );
+      expect(f(np.array([5, -1], { dtype: np.int32 })).js()).toEqual([9, 11]);
+      f.dispose();
+      const g = jit((i: np.Array) =>
+        np.ravelMultiIndex([i, np.array([1, 3])], [3, 4], { mode: "clip" }),
+      );
+      expect(g(np.array([5, -1], { dtype: np.int32 })).js()).toEqual([9, 3]);
+      g.dispose();
+    });
+
+    test("throws when multiIndex and dims lengths differ", () => {
+      expect(() => np.ravelMultiIndex([np.array([0])], [3, 4])).toThrow(
+        /one coordinate array per dimension/,
+      );
+    });
+  });
+
   suite("jax.numpy.vander()", () => {
     test("builds a Vandermonde matrix", () => {
       const x = np.array([0, 2, 3]);
