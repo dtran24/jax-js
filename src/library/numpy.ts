@@ -2670,6 +2670,22 @@ export function trunc(x: ArrayLike): Array {
 }
 
 /**
+ * Return the fractional and integral parts of an array, element-wise.
+ *
+ * Both parts have the same sign as the input, and satisfy
+ * `x == fractional + integral`. Integer inputs are promoted to float32.
+ *
+ * @param x - Input array.
+ * @returns Tuple of [fractional part, integral part].
+ */
+export function modf(x: ArrayLike): [Array, Array] {
+  x = fudgeArray(x);
+  if (!isFloatDtype(x.dtype)) x = x.astype(DType.Float32);
+  const whole = trunc(x.ref);
+  return [x.sub(whole.ref), whole];
+}
+
+/**
  * @function
  * Round to the given number of decimals.
  *

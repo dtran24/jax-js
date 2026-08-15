@@ -2556,6 +2556,42 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.modf()", () => {
+    test("returns fractional and integral parts", () => {
+      const x = np.array([3.5, -3.5, 0, 1.25]);
+      const [frac, whole] = np.modf(x);
+      expect(frac.js()).toBeAllclose([0.5, -0.5, 0, 0.25], { atol: 1e-6 });
+      expect(whole.js()).toEqual([3, -3, 0, 1]);
+    });
+
+    test("both parts match the sign of the input", () => {
+      const x = np.array([-2.75, 2.75]);
+      const [frac, whole] = np.modf(x);
+      expect(frac.js()).toBeAllclose([-0.75, 0.75], { atol: 1e-6 });
+      expect(whole.js()).toEqual([-2, 2]);
+    });
+
+    test("satisfies invariant x == frac + whole", () => {
+      const x = np.array([1.7, -4.2, 100.001, -0.5]);
+      const [frac, whole] = np.modf(x.ref);
+      expect(np.add(frac, whole).js()).toBeAllclose(x.js(), { atol: 1e-6 });
+    });
+
+    test("promotes integer inputs to float32", () => {
+      const [frac, whole] = np.modf(np.array([5, -3], { dtype: np.int32 }));
+      expect(frac.dtype).toBe(np.float32);
+      expect(whole.dtype).toBe(np.float32);
+      expect(frac.js()).toEqual([0, 0]);
+      expect(whole.js()).toEqual([5, -3]);
+    });
+
+    test("works with scalars", () => {
+      const [frac, whole] = np.modf(2.5);
+      expect(frac.js()).toBeCloseTo(0.5, 5);
+      expect(whole.js()).toBeCloseTo(2, 5);
+    });
+  });
+
   suite("jax.numpy.unwrap()", () => {
     test("unwraps phase jumps larger than pi, using the NumPy docs example", () => {
       const phase = np.array([
