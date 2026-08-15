@@ -2344,7 +2344,7 @@ export function fromfunction(
       `fromfunction: shape must be non-negative integers, got ${JSON.stringify(shape)}`,
     );
   }
-  let f = func as (...indices: ArrayLike[]) => JsTree<ArrayLike>;
+  let f = func;
   for (let i = 0; i < shape.length; i++) {
     // The last wrap is the outermost vmap, which must map the first index so
     // that it varies along the leading axis of the output.
