@@ -3724,6 +3724,12 @@ suite.each(devices)("device:%s", (device) => {
       expect(same.js()).toEqual([1, 2, 3]);
     });
 
+    test("returns a promoted scalar unchanged for order zero", () => {
+      const y = np.polyder(np.array(3, { dtype: np.int32 }), 0);
+      expect(y.dtype).toBe(np.float32);
+      expect(y.js()).toBe(3);
+    });
+
     test("returns an empty polynomial when order reaches the length", () => {
       const y = np.polyder(np.array([5]));
       expect(y.shape).toEqual([0]);

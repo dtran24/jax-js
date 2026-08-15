@@ -2122,6 +2122,8 @@ export function polyder(p: ArrayLike, m: number = 1): Array {
       `polyder: order of derivative must be a non-negative integer, got ${m}`,
     );
   }
+  if (!isFloatDtype(p.dtype)) p = astype(p, float32);
+  if (m === 0) return p;
   if (p.ndim === 0) {
     const ndim = p.ndim;
     p.dispose();
@@ -2129,8 +2131,6 @@ export function polyder(p: ArrayLike, m: number = 1): Array {
       `polyder: coefficients must have at least one dimension, got ${ndim}D`,
     );
   }
-  if (!isFloatDtype(p.dtype)) p = astype(p, float32);
-  if (m === 0) return p;
   const n = p.shape[0];
   const length = Math.max(n - m, 0);
   // coeff[j] = (n - 1 - j) * (n - 2 - j) * ... * (n - m - j)
