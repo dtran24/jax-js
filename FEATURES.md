@@ -456,7 +456,7 @@ Most operations behave the same way as they do in JAX.
 | `unique_inverse`      | 🔴      | sorting                                 |
 | `unique_values`       | 🔴      | sorting                                 |
 | `unpackbits`          | ⚪️      | no uint8 support                        |
-| `unravel_index`       | 🟠      |                                         |
+| `unravel_index`       | 🟢      |                                         |
 | `unstack`             | 🟢      |                                         |
 | `unwrap`              | 🟢      |                                         |
 | `vander`              | 🟢      |                                         |

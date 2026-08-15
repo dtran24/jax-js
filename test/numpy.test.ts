@@ -2558,6 +2558,66 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.unravelIndex()", () => {
+    test("unravels flat indices, using the NumPy docs example", () => {
+      const [r, c] = np.unravelIndex(np.array([22, 41, 37]), [7, 6]);
+      expect(r.js()).toEqual([3, 6, 6]);
+      expect(c.js()).toEqual([4, 5, 1]);
+    });
+
+    test("unravels a scalar flat index", () => {
+      const coords = np.unravelIndex(1621, [6, 7, 8, 9]);
+      expect(coords.map((c) => c.js())).toEqual([3, 1, 4, 1]);
+    });
+
+    test("keeps int32 dtype and the shape of the indices array", () => {
+      const flat = np.arange(6).reshape([2, 3]);
+      const [i, j] = np.unravelIndex(flat, [3, 2]);
+      expect(i.dtype).toBe(np.int32);
+      expect(j.dtype).toBe(np.int32);
+      expect(i.shape).toEqual([2, 3]);
+      expect(i.js()).toEqual([
+        [0, 0, 1],
+        [1, 2, 2],
+      ]);
+      expect(j.js()).toEqual([
+        [0, 1, 0],
+        [1, 0, 1],
+      ]);
+    });
+
+    test("counts negative indices backwards from the end", () => {
+      const [i, j] = np.unravelIndex(np.array([-1, -6]), [2, 3]);
+      expect(i.js()).toEqual([1, 0]);
+      expect(j.js()).toEqual([2, 0]);
+    });
+
+    test("clips out-of-bounds indices like JAX", () => {
+      const [i, j] = np.unravelIndex(np.array([6, 100, -7]), [2, 3]);
+      expect(i.js()).toEqual([1, 1, 0]);
+      expect(j.js()).toEqual([2, 2, 0]);
+    });
+
+    test("handles a one-dimensional shape", () => {
+      const [i] = np.unravelIndex(np.array([0, 4, 9]), [10]);
+      expect(i.js()).toEqual([0, 4, 9]);
+    });
+
+    test("rejects a non-integer shape", () => {
+      expect(() => np.unravelIndex(0, [2.5])).toThrow("non-negative integers");
+      expect(() => np.unravelIndex(0, [-2])).toThrow("non-negative integers");
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) => {
+        const [i, j] = np.unravelIndex(x, [2, 3]);
+        return i.mul(3).add(j);
+      });
+      const x = np.array([0, 1, 5], { dtype: np.int32 });
+      expect(f(x).js()).toEqual([0, 1, 5]);
+    });
+  });
+
   suite("jax.numpy.exp()", () => {
     test("computes element-wise exponential", () => {
       const x = np.array([-Infinity, 0, 1, 2, 3]);

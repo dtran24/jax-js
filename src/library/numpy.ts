@@ -1195,6 +1195,51 @@ export function ravel(a: ArrayLike): Array {
   return fudgeArray(a).ravel();
 }
 
+/**
+ * Convert flat indices into coordinate arrays for a given shape.
+ *
+ * Coordinates are computed in row-major (C-style) order, so the last axis
+ * varies fastest. Unlike NumPy, out-of-bound indices are clipped to the valid
+ * range instead of raising an error, and negative indices count backwards from
+ * the end of the flattened array.
+ *
+ * @param indices - Array of flat indices.
+ * @param shape - Shape of the array into which indices are unraveled.
+ * @returns One coordinate array per dimension of `shape`, each with the same
+ * shape as `indices`.
+ */
+export function unravelIndex(indices: ArrayLike, shape: number[]): Array[] {
+  if (shape.some((s) => !Number.isInteger(s) || s < 0)) {
+    throw new Error(
+      `unravelIndex: shape must be non-negative integers, got ${JSON.stringify(shape)}`,
+    );
+  }
+  let rem = fudgeArray(indices);
+  if (shape.length === 0) {
+    rem.dispose();
+    return [];
+  }
+  // Peel off one coordinate at a time, starting from the last axis.
+  const out: Array[] = new JsArray(shape.length);
+  for (let i = shape.length - 1; i >= 0; i--) {
+    const [quot, coord] = divmod(rem, shape[i]);
+    rem = quot;
+    out[i] = coord;
+  }
+  // The leftover quotient is 0 for in-bounds indices and -1 for in-bounds
+  // negative indices; anything else is out of bounds and gets clipped.
+  const oobPos = greater(rem.ref, 0);
+  const oobNeg = less(rem, -1);
+  return out.map((coord, i) => {
+    const last = i === shape.length - 1;
+    return where(
+      last ? oobPos : oobPos.ref,
+      shape[i] - 1,
+      where(last ? oobNeg : oobNeg.ref, 0, coord),
+    );
+  });
+}
+
 /** Remove one or more length-1 axes from an array. */
 export function squeeze(a: ArrayLike, axis: core.Axis = null): Array {
   const as = shape(a);
@@ -2582,7 +2627,9 @@ export { trueDivide as divide };
 export function floorDivide(x: ArrayLike, y: ArrayLike): Array {
   x = fudgeArray(x);
   y = fudgeArray(y);
-  if (isFloatDtype(x.dtype) || isFloatDtype(y.dtype)) {
+  // Weakly typed scalars defer to the other operand's dtype, so check the
+  // promoted dtype rather than the individual dtypes.
+  if (isFloatDtype(core.promoteAvals(x.aval, y.aval).dtype)) {
     // For floats, floor(x / y) works correctly
     return floor(trueDivide(x, y));
   }
