@@ -2351,6 +2351,14 @@ suite.each(devices)("device:%s", (device) => {
       expect(z.js()).toEqual([2, -3, -3, 2]);
       expect(z.dtype).toBe(np.int32);
     });
+
+    test("avoids overflow near the int32 lower bound", () => {
+      const x = np.full([3], -2147483648, { dtype: np.int32 });
+      const y = np.array([3, 5, 7], { dtype: np.int32 });
+      expect(np.floorDivide(x, y).js()).toEqual([
+        -715827883, -429496730, -306783379,
+      ]);
+    });
   });
 
   suite("jax.numpy.fmod()", () => {
@@ -2601,6 +2609,20 @@ suite.each(devices)("device:%s", (device) => {
     test("handles a one-dimensional shape", () => {
       const [i] = np.unravelIndex(np.array([0, 4, 9]), [10]);
       expect(i.js()).toEqual([0, 4, 9]);
+    });
+
+    test("accepts a scalar shape", () => {
+      const [i] = np.unravelIndex(np.array([0, 5, 6], { dtype: np.int32 }), 6);
+      expect(i.js()).toEqual([0, 5, 5]);
+    });
+
+    test("clips extreme negative int32 indices to the first coordinate", () => {
+      const [i, j] = np.unravelIndex(
+        np.array([-2147483648, -2147483647], { dtype: np.int32 }),
+        [2, 3],
+      );
+      expect(i.js()).toEqual([0, 0]);
+      expect(j.js()).toEqual([0, 0]);
     });
 
     test("rejects a non-integer shape", () => {

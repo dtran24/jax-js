@@ -1208,7 +1208,11 @@ export function ravel(a: ArrayLike): Array {
  * @returns One coordinate array per dimension of `shape`, each with the same
  * shape as `indices`.
  */
-export function unravelIndex(indices: ArrayLike, shape: number[]): Array[] {
+export function unravelIndex(
+  indices: ArrayLike,
+  shape: number | number[],
+): Array[] {
+  if (typeof shape === "number") shape = [shape];
   if (shape.some((s) => !Number.isInteger(s) || s < 0)) {
     throw new Error(
       `unravelIndex: shape must be non-negative integers, got ${JSON.stringify(shape)}`,
@@ -2633,9 +2637,14 @@ export function floorDivide(x: ArrayLike, y: ArrayLike): Array {
     // For floats, floor(x / y) works correctly
     return floor(trueDivide(x, y));
   }
-  // For integers, use (x - remainder(x, y)) / y to round toward -infinity
-  // This avoids the truncation behavior of idiv which rounds toward zero
-  return subtract(x, remainder(x.ref, y.ref)).div(y) as Array;
+  // Integer division truncates toward zero, so subtract one when a nonzero
+  // remainder and differing signs require rounding toward negative infinity.
+  // This avoids overflowing in `x - remainder(x, y)` near int32 boundaries.
+  const rem = core.mod(x.ref, y.ref) as Array;
+  const signsDiffer = notEqual(less(x.ref, 0), less(y.ref, 0));
+  const adjust = logicalAnd(notEqual(rem.ref, 0), signsDiffer);
+  const quot = subtract(x, rem).div(y) as Array;
+  return where(adjust, quot.ref.sub(1), quot);
 }
 
 /**
