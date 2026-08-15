@@ -3701,6 +3701,67 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.polymul()", () => {
+    test("multiplies polynomials of equal length", () => {
+      const a1 = np.array([2, 1, 0]);
+      const a2 = np.array([0, 5, 3]);
+      expect(np.polymul(a1, a2).js()).toEqual([0, 10, 11, 3, 0]);
+    });
+
+    test("multiplies polynomials of different lengths", () => {
+      const a1 = np.array([1, 2]);
+      const a2 = np.array([3, 4, 5]);
+      expect(np.polymul(a1.ref, a2.ref).js()).toEqual([3, 10, 13, 10]);
+      expect(np.polymul(a2, a1).js()).toEqual([3, 10, 13, 10]);
+    });
+
+    test("multiplies constant polynomials", () => {
+      const a1 = np.array([2]);
+      const a2 = np.array([3]);
+      expect(np.polymul(a1, a2).js()).toEqual([6]);
+    });
+
+    test("promotes inputs to floating point", () => {
+      const a1 = np.array([1, 2, 3]);
+      const a2 = np.array([4, 5, 6]);
+      const y = np.polymul(a1, a2);
+      expect(y.dtype).toBe(np.float32);
+      expect(y).toBeAllclose([4, 13, 28, 27, 18]);
+    });
+
+    test("treats empty coefficient arrays as zero", () => {
+      const a1 = np.zeros([0]);
+      const a2 = np.array([1, 2]);
+      expect(np.polymul(a1.ref, a2.ref).js()).toEqual([0, 0]);
+      expect(np.polymul(a2, a1.ref).js()).toEqual([0, 0]);
+      expect(np.polymul(a1.ref, a1).js()).toEqual([0]);
+    });
+
+    test("rejects scalar and batched inputs", () => {
+      expect(() => np.polymul(np.array(1), np.ones([2]))).toThrow(
+        "polymul: both inputs must be 1D arrays",
+      );
+      expect(() => np.polymul(np.ones([2, 2]), np.ones([2]))).toThrow(
+        "polymul: both inputs must be 1D arrays",
+      );
+    });
+
+    test("works inside jit and grad", () => {
+      const f = jit((a: np.Array, b: np.Array) => np.polymul(a, b));
+      expect(f(np.array([1, 2, 3]), np.array([4, 5])).js()).toEqual([
+        4, 13, 22, 15,
+      ]);
+
+      const g = (a: np.Array) =>
+        np
+          .polymul(a, np.array([1, 2]))
+          .mul(np.array([1, 2, 3]))
+          .sum();
+      const da = grad(g)(np.array([1, 2], { dtype: np.float32 }));
+      expect(da.js()).toEqual([5, 8]);
+    });
+  });
+
   suite("jax.numpy.argmax()", () => {
     test("finds maximum of logits", () => {
       const x = np.argmax(np.array([0.1, 0.2, 0.3, 0.2]));
