@@ -28,6 +28,7 @@ import * as core from "../frontend/core";
 import { jit } from "../frontend/jaxpr";
 import { moveaxis as moveaxisTracer, vmap } from "../frontend/vmap";
 import { Pair } from "../shape";
+import { type JsTree, type MapJsTree, map as treeMap } from "../tree";
 import {
   checkAxis,
   DEBUG,
@@ -2336,22 +2337,37 @@ export function indices(
 export function fromfunction(
   func: (...indices: Array[]) => ArrayLike,
   shape: number[],
+  opts?: DTypeAndDevice,
+): Array;
+export function fromfunction<
+  Tree extends JsTree<ArrayLike>[] | { [key: string]: JsTree<ArrayLike> },
+>(
+  func: (...indices: Array[]) => Tree,
+  shape: number[],
+  opts?: DTypeAndDevice,
+): MapJsTree<Tree, ArrayLike, Array>;
+export function fromfunction(
+  func: (...indices: Array[]) => JsTree<ArrayLike>,
+  shape: number[],
   { dtype, device }: DTypeAndDevice = {},
-): Array {
+): JsTree<Array> {
   dtype = dtype ?? float32;
   if (shape.some((d) => !Number.isInteger(d) || d < 0)) {
     throw new Error(
       `fromfunction: shape must be non-negative integers, got ${JSON.stringify(shape)}`,
     );
   }
-  let f = func as (...indices: ArrayLike[]) => ArrayLike;
+  let f = func as (...indices: ArrayLike[]) => JsTree<ArrayLike>;
   for (let i = 0; i < shape.length; i++) {
     // The last wrap is the outermost vmap, which must map the first index so
     // that it varies along the leading axis of the output.
     const inAxes = shape.map((_, j) => (j === shape.length - 1 - i ? 0 : null));
     f = vmap(f as any, inAxes) as any;
   }
-  return fudgeArray(f(...shape.map((s) => arange(0, s, 1, { dtype, device }))));
+  return treeMap(
+    fudgeArray,
+    f(...shape.map((s) => arange(0, s, 1, { dtype, device }))),
+  );
 }
 
 /**

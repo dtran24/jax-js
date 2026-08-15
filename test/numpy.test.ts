@@ -2140,6 +2140,21 @@ suite.each(devices)("device:%s", (device) => {
       ]);
     });
 
+    test("maps multiple results independently", () => {
+      const [sum, product] = np.fromfunction(
+        (i, j) => [i.ref.add(j.ref), i.mul(j)],
+        [2, 3],
+      );
+      expect(sum.js()).toEqual([
+        [0, 1, 2],
+        [1, 2, 3],
+      ]);
+      expect(product.js()).toEqual([
+        [0, 0, 0],
+        [0, 1, 2],
+      ]);
+    });
+
     test("handles empty and zero-size shapes", () => {
       expect(np.fromfunction(() => 5, []).js()).toEqual(5);
       const a = np.fromfunction((i, j) => i.add(j), [0, 2]);
