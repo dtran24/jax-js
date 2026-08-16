@@ -3890,23 +3890,6 @@ suite.each(devices)("device:%s", (device) => {
       expect(np.polymul(a1.ref, a1).js()).toEqual([0]);
     });
 
-    test("optionally trims leading zero coefficients", () => {
-      expect(
-        np
-          .polymul(np.array([2, 1, 0]), np.array([0, 5, 0, 3]), {
-            trimLeadingZeros: true,
-          })
-          .js(),
-      ).toEqual([10, 5, 6, 3, 0]);
-      expect(
-        np
-          .polymul(np.array([0, 0]), np.array([0, 1, 2]), {
-            trimLeadingZeros: true,
-          })
-          .js(),
-      ).toEqual([0, 0]);
-    });
-
     test("rejects scalar and batched inputs", () => {
       expect(() => np.polymul(np.array(1), np.ones([2]))).toThrow(
         "polymul: both inputs must be 1D arrays",
@@ -3929,15 +3912,6 @@ suite.each(devices)("device:%s", (device) => {
           .sum();
       const da = grad(g)(np.array([1, 2], { dtype: np.float32 }));
       expect(da.js()).toEqual([5, 8]);
-    });
-
-    test("rejects data-dependent trimming inside jit", () => {
-      const f = jit((a: np.Array, b: np.Array) =>
-        np.polymul(a, b, { trimLeadingZeros: true }),
-      );
-      expect(() => f(np.array([0, 1]), np.array([1, 2]))).toThrow(
-        "trimLeadingZeros is not compatible with transformations",
-      );
     });
   });
 

@@ -2107,11 +2107,7 @@ export function polysub(a1: ArrayLike, a2: ArrayLike): Array {
 /**
  * Return the product of two polynomials.
  */
-export function polymul(
-  a1: ArrayLike,
-  a2: ArrayLike,
-  { trimLeadingZeros = false }: { trimLeadingZeros?: boolean } = {},
-): Array {
+export function polymul(a1: ArrayLike, a2: ArrayLike): Array {
   a1 = fudgeArray(a1);
   a2 = fudgeArray(a2);
   if (a1.ndim !== 1 || a2.ndim !== 1) {
@@ -2126,17 +2122,6 @@ export function polymul(
   const dtype = isFloatDtype(promotedDtype) ? promotedDtype : DType.Float32;
   a1 = a1.astype(dtype);
   a2 = a2.astype(dtype);
-  if (trimLeadingZeros && (a1.shape[0] > 1 || a2.shape[0] > 1)) {
-    if (!(a1 instanceof Array) || !(a2 instanceof Array)) {
-      a1.dispose();
-      a2.dispose();
-      throw new Error(
-        "polymul: trimLeadingZeros is not compatible with transformations",
-      );
-    }
-    a1 = trimLeadingZeroCoefficients(a1);
-    a2 = trimLeadingZeroCoefficients(a2);
-  }
   if (a1.shape[0] === 0) {
     a1.dispose();
     a1 = zeros([1], { dtype });
@@ -2146,13 +2131,6 @@ export function polymul(
     a2 = zeros([1], { dtype });
   }
   return convolve(a1, a2, "full");
-}
-
-function trimLeadingZeroCoefficients(a: Array): Array {
-  const values = a.ref.dataSync();
-  let start = 0;
-  while (start < values.length && values[start] === 0) ++start;
-  return start === 0 ? a : a.slice([start]);
 }
 
 /**
