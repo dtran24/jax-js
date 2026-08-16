@@ -370,7 +370,7 @@ Most operations behave the same way as they do in JAX.
 | `polydiv`             | 🔴      |                                         |
 | `polyfit`             | 🔴      |                                         |
 | `polyint`             | 🟠      |                                         |
-| `polymul`             | 🟠      |                                         |
+| `polymul`             | 🟢      |                                         |
 | `polysub`             | 🟢      |                                         |
 | `polyval`             | 🟢      |                                         |
 | `positive`            | 🟢      |                                         |
