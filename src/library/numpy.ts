@@ -2105,13 +2105,6 @@ export function polysub(a1: ArrayLike, a2: ArrayLike): Array {
 
 /**
  * Return the product of two polynomials.
- *
- * The input arrays contain polynomial coefficients, ordered from highest
- * degree to the constant term. Inputs are promoted to a floating-point dtype,
- * and an empty coefficient array is treated as the zero polynomial `[0]`.
- * Set `trimLeadingZeros` to remove leading zero coefficients before
- * multiplication. This option is data-dependent and cannot be used inside
- * `jit()` or other transformations.
  */
 export function polymul(
   a1: ArrayLike,
