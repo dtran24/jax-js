@@ -2145,7 +2145,8 @@ export function polyder(p: ArrayLike, m: number = 1): Array {
     length,
     ...batchBroadcastDims,
   ]);
-  return multiply(p.slice([0, length]), scale);
+  const survivingCoeffs = p.slice([0, length]);
+  return multiply(survivingCoeffs, scale);
 }
 
 /**
