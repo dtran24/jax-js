@@ -2140,9 +2140,11 @@ export function polyder(p: ArrayLike, m: number = 1): Array {
     for (let i = 1; i <= m; i++) c *= n - j - i;
     coeff.push(c);
   }
+  // Add singleton dimensions so each multiplier broadcasts across batches.
+  const batchBroadcastDims = rep(p.ndim - 1, 1);
   const scale = array(coeff, { dtype: p.dtype, device: p.device }).reshape([
     length,
-    ...rep(p.ndim - 1, 1),
+    ...batchBroadcastDims,
   ]);
   return multiply(p.slice([0, length]), scale);
 }
