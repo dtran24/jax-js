@@ -245,7 +245,7 @@ Most operations behave the same way as they do in JAX.
 | `frexp`               | 🟢      |                                         |
 | `frombuffer`          | 🟠      |                                         |
 | `fromfile`            | ⚪️      | Python-specific                         |
-| `fromfunction`        | 🟠      |                                         |
+| `fromfunction`        | 🟢      |                                         |
 | `fromiter`            | ⚪️      | Python-specific                         |
 | `frompyfunc`          | ⚪️      | Python-specific                         |
 | `fromstring`          | ⚪️      | Python-specific                         |
@@ -329,7 +329,7 @@ Most operations behave the same way as they do in JAX.
 | `min`                 | 🟢      |                                         |
 | `minimum`             | 🟢      |                                         |
 | `mod`                 | ⚪️      | Skipped for clarity, use `remainder()`  |
-| `modf`                | 🟠      |                                         |
+| `modf`                | 🟢      |                                         |
 | `moveaxis`            | 🟢      |                                         |
 | `multiply`            | 🟢      |                                         |
 | `nan_to_num`          | 🟢      |                                         |
@@ -370,7 +370,7 @@ Most operations behave the same way as they do in JAX.
 | `polydiv`             | 🔴      |                                         |
 | `polyfit`             | 🔴      |                                         |
 | `polyint`             | 🟠      |                                         |
-| `polymul`             | 🟠      |                                         |
+| `polymul`             | 🟢      |                                         |
 | `polysub`             | 🟢      |                                         |
 | `polyval`             | 🟢      |                                         |
 | `positive`            | 🟢      |                                         |
