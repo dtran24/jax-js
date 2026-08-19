@@ -1075,12 +1075,13 @@ suite.each(devices)("device:%s", (device) => {
   });
 
   suite("jax.numpy.select()", () => {
+    // https://numpy.org/devdocs/reference/generated/numpy.select.html
     test("selects from choices with a default, using the NumPy docs example", () => {
       const x = np.arange(6);
       const condlist = [np.less(x.ref, 3), np.greater(x.ref, 3)];
-      const choicelist = [x.ref, np.square(x)];
+      const choicelist = [np.negative(x.ref), np.square(x)];
       const result = np.select(condlist, choicelist, 42);
-      expect(result.js()).toEqual([0, 1, 2, 42, 16, 25]);
+      expect(result.js()).toEqual([0, -1, -2, 42, 16, 25]);
     });
 
     test("first matching condition wins when conditions overlap", () => {
