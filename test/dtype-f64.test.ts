@@ -106,4 +106,13 @@ suite.each(devices)("device:%s", (device) => {
     expect(y.dtype).toBe(np.float64);
     expect(y.js()).toEqual([1, 1, 1, 0]);
   });
+
+  test("polymul() preserves f64 precision", () => {
+    const a = np.array([1, 1e-12], { dtype: np.float64 });
+    const b = np.array([1, 1], { dtype: np.float64 });
+    const y = np.polymul(a, b);
+    expect(y.dtype).toBe(np.float64);
+    // The middle coefficient 1 + 1e-12 would round to 1 in f32.
+    expect(y.ref.dataSync()[1]).toBe(1 + 1e-12);
+  });
 });
