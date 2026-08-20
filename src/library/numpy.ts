@@ -2141,11 +2141,6 @@ export function polysub(a1: ArrayLike, a2: ArrayLike): Array {
 /**
  * Return an antiderivative (indefinite integral) of a polynomial.
  *
- * The first axis contains polynomial coefficients, ordered from highest degree
- * to the constant term. Remaining axes are broadcast batch dimensions. The
- * result is promoted to a floating-point dtype and gains `m` coefficients
- * along the first axis.
- *
  * @param p - Array of polynomial coefficients along the leading axis.
  * @param m - Order of the antiderivative, a non-negative integer.
  * @param k - Integration constants, a scalar or 1D array of length 1 or `m`,
