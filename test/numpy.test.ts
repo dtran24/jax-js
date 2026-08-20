@@ -1074,6 +1074,95 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
+  suite("jax.numpy.select()", () => {
+    // https://numpy.org/devdocs/reference/generated/numpy.select.html
+    test("selects from choices with a default, using the NumPy docs example", () => {
+      const x = np.arange(6);
+      const condlist = [np.less(x.ref, 3), np.greater(x.ref, 3)];
+      const choicelist = [np.negative(x.ref), np.square(x)];
+      const result = np.select(condlist, choicelist, 42);
+      expect(result.js()).toEqual([0, -1, -2, 42, 16, 25]);
+    });
+
+    test("first matching condition wins when conditions overlap", () => {
+      const x = np.arange(6);
+      const condlist = [np.lessEqual(x.ref, 4), np.greater(x.ref, 3)];
+      const choicelist = [x.ref, np.square(x)];
+      const result = np.select(condlist, choicelist, 55);
+      expect(result.js()).toEqual([0, 1, 2, 3, 4, 25]);
+    });
+
+    test("default value defaults to zero", () => {
+      const x = np.arange(4);
+      const result = np.select([np.greater(x.ref, 1)], [x]);
+      expect(result.js()).toEqual([0, 0, 2, 3]);
+    });
+
+    test("converts numeric conditions to boolean", () => {
+      const result = np.select(
+        [np.array([0, 1, -2]), np.array([1, 0, 0])],
+        [10, 20],
+        30,
+      );
+      expect(result.js()).toEqual([20, 10, 10]);
+    });
+
+    test("broadcasts conditions and scalar choices", () => {
+      const cond = np.array([
+        [true, false],
+        [false, true],
+      ]);
+      const result = np.select(
+        [cond, np.array([false, true])],
+        [1, np.array([[10], [20]])],
+        -1,
+      );
+      expect(result.js()).toEqual([
+        [1, 10],
+        [-1, 1],
+      ]);
+    });
+
+    test("promotes dtypes across choices and default", () => {
+      const x = np.arange(3);
+      const c = np.array([0.5, 1.5, 2.5], { dtype: np.float32 });
+      const result = np.select([np.less(x, 1)], [c], 2);
+      expect(result.dtype).toBe(np.float32);
+      expect(result.js()).toEqual([0.5, 2, 2]);
+    });
+
+    test("throws on mismatched or empty inputs", () => {
+      expect(() => np.select([true], [])).toThrow(
+        "condlist must have length equal to choicelist",
+      );
+      expect(() => np.select([], [])).toThrow("condlist must be non-empty");
+    });
+
+    test("works with grad reverse-mode", () => {
+      const f = (x: np.Array) =>
+        np
+          .select(
+            [np.less(x.ref, 2), np.greater(x.ref, 3)],
+            [x.ref.mul(2), x.ref.mul(3)],
+            0,
+          )
+          .sum();
+      const g = grad(f)(np.array([1.0, 2.0, 3.0, 4.0]));
+      expect(g.js()).toEqual([2, 0, 0, 3]);
+    });
+
+    test("works inside jit", () => {
+      const f = jit((x: np.Array) =>
+        np.select(
+          [np.less(x.ref, 3), np.greater(x.ref, 3)],
+          [x.ref, np.square(x)],
+          42,
+        ),
+      );
+      expect(f(np.arange(6)).js()).toEqual([0, 1, 2, 42, 16, 25]);
+    });
+  });
+
   suite("jax.numpy.equal()", () => {
     test("computes equal", () => {
       const x = np.array([1, 2, 3, 4]);

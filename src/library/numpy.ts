@@ -1568,6 +1568,40 @@ export function takeAlongAxis(
 }
 
 /**
+ * Select values from a list of choices based on a list of conditions.
+ *
+ * At each position, the output takes the value of the choice corresponding to
+ * the first true condition. Where no condition is true, `defaultValue` is
+ * used. Conditions are converted to boolean arrays, and all entries must be
+ * mutually broadcast-compatible.
+ *
+ * @param condlist - List of array-like conditions, converted to booleans.
+ * @param choicelist - List of arrays to choose from, same length as
+ * `condlist`.
+ * @param defaultValue - Value used where every condition is false. Default 0.
+ */
+export function select(
+  condlist: ArrayLike[],
+  choicelist: ArrayLike[],
+  defaultValue: ArrayLike = 0,
+): Array {
+  if (condlist.length !== choicelist.length) {
+    throw new Error(
+      `select: condlist must have length equal to choicelist ` +
+        `(${condlist.length} vs ${choicelist.length})`,
+    );
+  }
+  if (condlist.length === 0) {
+    throw new Error("select: condlist must be non-empty");
+  }
+  let output = fudgeArray(defaultValue);
+  for (let i = condlist.length - 1; i >= 0; i--) {
+    output = where(astype(condlist[i], bool), choicelist[i], output);
+  }
+  return output;
+}
+
+/**
  * Apply a function to 1D array slices along an axis.
  *
  * This is implemented internally with applications of `jax.vmap()`, rather than
