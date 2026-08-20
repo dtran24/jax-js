@@ -3959,7 +3959,7 @@ suite.each(devices)("device:%s", (device) => {
       expect(np.polyint(p, 0).js()).toEqual([3, 2, 1]);
     });
 
-    test("applies integration constants (numpy reference values)", () => {
+    test("applies integration constants", () => {
       expect(np.polyint(np.array([3, 2, 1]), 1, 5)).toBeAllclose([1, 1, 1, 5]);
       expect(np.polyint(np.array([3, 2, 1]), 2, np.array([4, 6]))).toBeAllclose(
         [0.25, 1 / 3, 0.5, 4, 6],
