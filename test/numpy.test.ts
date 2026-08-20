@@ -3951,7 +3951,11 @@ suite.each(devices)("device:%s", (device) => {
 
     test("supports higher-order antiderivatives", () => {
       const p = np.array([3, 2, 1]);
-      expect(np.polyint(p.ref, 2)).toBeAllclose([0.25, 1 / 3, 0.5, 0, 0]);
+      expect(np.polyint(p, 2)).toBeAllclose([0.25, 1 / 3, 0.5, 0, 0]);
+    });
+
+    test("treats zero-order integration as identity", () => {
+      const p = np.array([3, 2, 1]);
       expect(np.polyint(p, 0).js()).toEqual([3, 2, 1]);
     });
 
